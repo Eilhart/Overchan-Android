@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <item name="menu_open_close_drawer" type="id"/>
     <item name="menu_open_browser" type="id"/>
     <item name="menu_favorites" type="id"/>
+    <item name="menu_reload_thread" type="id"/>
     <item name="menu_settings" type="id"/>
     <item name="menu_sub_settings" type="id"/>
     <item name="menu_sub_settings_suspend" type="id"/>
