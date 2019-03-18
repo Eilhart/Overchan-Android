@@ -640,6 +640,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="mark_code">Код</string>
     <string name="pref_post_thumbnail_scale_title">Розмір ескізів</string>
     <string name="pref_key_post_thumbnail_scale_toast">Рекомендується очистити кеш</string>
+    <string name="pref_wide_popup_dialogs_title">Широкі спливаючі діалоги</string>
+    <string name="pref_wide_popup_dialogs_summary">Простіше читати спливаючі діалогові вікна на невеликих екранах</string>
     <string name="newtab_select_local_directory">Вказати розташування каталогу</string>
     <string name="pref_scroll_to_active_tab_summary">Прокручувати до активної вкладки при закритті неактивній вкладки</string>
     <string name="pref_scroll_to_active_tab_title">Прокрутка до активної вкладки</string>

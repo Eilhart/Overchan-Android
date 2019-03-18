@@ -627,6 +627,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="app_import_overwrite_warning_message">All data will be irreversibly overwritten</string>
     <string name="pref_post_thumbnail_scale_title">Post thumbnail size</string>
     <string name="pref_key_post_thumbnail_scale_toast">It\'s recommended to clear cache after thumbnail scale has been changed</string>
+    <string name="pref_wide_popup_dialogs_title">Wide pop-up dialogs</string>
+    <string name="pref_wide_popup_dialogs_summary">Makes pop-up dialogs easier to read on small screens</string>
     <string name="newtab_select_local_directory">Specify directory location</string>
     <string name="pref_scroll_to_active_tab_summary">Scroll to the active tab when closing inactive tab</string>
     <string name="pref_scroll_to_active_tab_title">Scroll to the active tab</string>
