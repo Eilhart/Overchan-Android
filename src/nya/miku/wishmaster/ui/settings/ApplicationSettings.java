@@ -484,6 +484,7 @@ public class ApplicationSettings {
         public boolean isDisplayDate;
         public boolean isLocalTime;
         public boolean repliesOnlyQuantity;
+        public boolean showDefaultNames;
         public boolean showHiddenItems;
         public boolean maskPictures;
         public boolean hideActionBar;
@@ -496,6 +497,7 @@ public class ApplicationSettings {
         container.isDisplayDate = isDisplayDate();
         container.isLocalTime = isLocalTime();
         container.repliesOnlyQuantity = repliesOnlyQuantity();
+        container.showDefaultNames = showDefaultNames();
         container.showHiddenItems = showHiddenItems();
         container.maskPictures = maskPictures();
         container.hideActionBar = hideActionBar();
@@ -555,6 +557,10 @@ public class ApplicationSettings {
         int result = (int) (resources.getDimensionPixelSize(R.dimen.post_thumbnail_size) * scale);
         return result;
     }    
+
+    public boolean showDefaultNames(){
+        return preferences.getBoolean(resources.getString(R.string.pref_key_show_default_names), false);
+    }
 
     public boolean widePopupDialogs(){
         return preferences.getBoolean(resources.getString(R.string.pref_key_wide_popup_dialogs), false);

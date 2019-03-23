@@ -636,6 +636,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="mark_code">Код</string>
     <string name="pref_post_thumbnail_scale_title">Размер эскизов</string>
     <string name="pref_key_post_thumbnail_scale_toast">Рекомендуется очистить кэш</string>
+    <string name="pref_show_default_names_title">Отображать имена по умолчанию</string>
+    <string name="pref_show_default_names_summary">Не скрывать поле имя у анонимных постеров</string>
     <string name="pref_wide_popup_dialogs_title">Широкие всплывающие диалоги</string>
     <string name="pref_wide_popup_dialogs_summary">Упрощает чтение всплывающих диалогов на маленьких экранах</string>
     <string name="newtab_select_local_directory">Указать расположение каталога</string>
