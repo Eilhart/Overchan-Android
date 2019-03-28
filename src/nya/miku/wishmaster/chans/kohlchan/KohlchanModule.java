@@ -24,9 +24,7 @@ import android.graphics.drawable.Drawable;
 import android.support.v4.content.res.ResourcesCompat;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import nya.miku.wishmaster.R;
@@ -37,7 +35,6 @@ import nya.miku.wishmaster.api.models.BoardModel;
 import nya.miku.wishmaster.api.models.SendPostModel;
 import nya.miku.wishmaster.api.models.SimpleBoardModel;
 import nya.miku.wishmaster.api.models.UrlPageModel;
-import nya.miku.wishmaster.api.util.ChanModels;
 import nya.miku.wishmaster.common.IOUtils;
 import nya.miku.wishmaster.common.Logger;
 import nya.miku.wishmaster.http.streamer.HttpRequestModel;
@@ -69,6 +66,11 @@ public class KohlchanModule extends AbstractVichanModule {
     @Override
     public String getDisplayingName() {
         return "Kohlchan";
+    }
+
+    @Override
+    protected boolean canCloudflare() {
+        return true;
     }
     
     @Override
