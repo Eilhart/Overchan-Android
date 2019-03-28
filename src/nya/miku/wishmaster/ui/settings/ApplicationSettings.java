@@ -182,6 +182,7 @@ public class ApplicationSettings {
         if (theme.equals(resources.getString(R.string.pref_theme_value_futaba))) return R.style.Theme_Futaba;
         if (theme.equals(resources.getString(R.string.pref_theme_value_photon))) return R.style.Theme_Photon;
         if (theme.equals(resources.getString(R.string.pref_theme_value_neutron))) return R.style.Theme_Neutron;
+        if (theme.equals(resources.getString(R.string.pref_theme_value_burichan))) return R.style.Theme_Burichan;
         if (theme.equals(resources.getString(R.string.pref_theme_value_gurochan))) return R.style.Theme_Gurochan;
         if (theme.equals(resources.getString(R.string.pref_theme_value_tomorrow))) return R.style.Theme_Tomorrow;
         if (theme.equals(resources.getString(R.string.pref_theme_value_mikuba))) return R.style.Theme_Mikuba;
