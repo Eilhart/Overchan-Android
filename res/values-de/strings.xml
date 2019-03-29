@@ -154,6 +154,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="menu_attach_file">Datei anhängen</string>
     <string name="menu_attach_gallery">Galerie</string>
     <string name="menu_save_page">Speichern</string>
+    <string name="menu_reload_thread">Umladen</string>
     <string name="menu_board_gallery">Galerie</string>
     <string name="menu_clear_history">Verlauf löschen</string>
     <string name="menu_clear_favorites">Alle Lesezeichen entfernen</string>

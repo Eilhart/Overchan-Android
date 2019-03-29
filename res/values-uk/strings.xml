@@ -164,6 +164,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="menu_attach_file">Додати файл</string>
     <string name="menu_attach_gallery">Галерея</string>
     <string name="menu_save_page">Зберегти</string>
+    <string name="menu_reload_thread">Перезавантажити</string>
     <string name="menu_board_gallery">Галерея</string>
     <string name="menu_clear_history">Стерти історію</string>
     <string name="menu_clear_favorites">Стерти всі закладки</string>

@@ -159,6 +159,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="menu_attach_file">Прикрепить файл</string>
     <string name="menu_attach_gallery">Галерея</string>
     <string name="menu_save_page">Сохранить</string>
+    <string name="menu_reload_thread">Перезагрузить</string>
     <string name="menu_board_gallery">Галерея</string>
     <string name="menu_clear_history">Очистить историю</string>
     <string name="menu_clear_favorites">Удалить все закладки</string>
