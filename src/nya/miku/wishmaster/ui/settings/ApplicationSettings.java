@@ -551,8 +551,11 @@ public class ApplicationSettings {
         String defaultThumbnailScale = resources.getString(R.string.pref_post_thumbnail_scale_value_default);
         String thumbnailScale = preferences.getString(resources.getString(R.string.pref_key_post_thumbnail_scale), defaultThumbnailScale);
         if (thumbnailScale.equals(resources.getString(R.string.pref_post_thumbnail_scale_value_50percent)))  scale = 0.5;
+        if (thumbnailScale.equals(resources.getString(R.string.pref_post_thumbnail_scale_value_75percent)))  scale = 0.75;
         if (thumbnailScale.equals(resources.getString(R.string.pref_post_thumbnail_scale_value_100percent))) scale = 1.0;
+        if (thumbnailScale.equals(resources.getString(R.string.pref_post_thumbnail_scale_value_125percent))) scale = 1.25;
         if (thumbnailScale.equals(resources.getString(R.string.pref_post_thumbnail_scale_value_150percent))) scale = 1.5;
+        if (thumbnailScale.equals(resources.getString(R.string.pref_post_thumbnail_scale_value_175percent))) scale = 1.75;
         if (thumbnailScale.equals(resources.getString(R.string.pref_post_thumbnail_scale_value_200percent))) scale = 2.0;
         int result = (int) (resources.getDimensionPixelSize(R.dimen.post_thumbnail_size) * scale);
         return result;
