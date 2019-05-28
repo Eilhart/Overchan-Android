@@ -539,7 +539,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="pref_autoupdate_only_wifi_title">Только через Wi-Fi</string>
     <string name="pref_autoupdate_only_wifi_summary">Автообновление только через Wi-Fi</string>
     <string name="pref_autoupdate_delay_title">Интервал (в секундах)</string>
-    <string name="pref_autoupdate_delay_summary">Интервал автообновления, не менее 30 секунд</string>
+    <string name="pref_autoupdate_delay_summary">Интервал автообновления</string>
     <string name="pref_autoupdate_delay_hint">по умолчанию 60 секунд</string>
     <string name="pref_autoupdate_delay_incorrect">Некорректное значение</string>
     <string name="pref_autoupdate_background_title">Обновление фоновых вкладок</string>
