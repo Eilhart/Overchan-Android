@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import android.app.Activity;
+import android.net.Uri;
 
 /**
  * Исключение, вызванное запросом проверки Cloudflare
@@ -43,6 +44,7 @@ public class CloudflareException extends InteractiveException {
     
     private static final Pattern PATTERN_STOKEN = Pattern.compile("stoken=\"?([^\"&]+)");
     private static final Pattern PATTERN_ID = Pattern.compile("data-ray=\"?([^\"&]+)");
+    private static final Pattern PATTERN_S = Pattern.compile("<input[^>]* name=\"s\"[^>]* value=\"(.+?)\"");
     
     private boolean recaptcha;
     private String url;
@@ -111,14 +113,21 @@ public class CloudflareException extends InteractiveException {
         String id = null;
         m = PATTERN_ID.matcher(htmlString);
         if (m.find()) id = m.group(1);
-        
+
+        String s = null;
+        m = PATTERN_S.matcher(htmlString);
+        if (m.find()) s = m.group(1);
+
         try {
             URL baseUrl = new URL(url);
             url = baseUrl.getProtocol() + "://" + baseUrl.getHost() + "/";
         } catch (Exception e) {
             if (!url.endsWith("/")) url = url + "/";
         }
-        String checkUrl = url + "cdn-cgi/l/chk_captcha?" + (id != null ? ("id=" + id + "&") : "") + "g-recaptcha-response=%s";
+        String checkUrl = url + "cdn-cgi/l/chk_captcha?"
+                + (s != null ? ("s=" +  Uri.encode(s) + "&") : "")
+                + (id != null ? ("id=" + id + "&") : "")
+                + "g-recaptcha-response=";
         return withRecaptcha(url, chanName, token, checkUrl, fallback);
     }
     
