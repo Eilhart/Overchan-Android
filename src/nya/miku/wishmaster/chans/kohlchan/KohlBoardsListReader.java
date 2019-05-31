@@ -46,13 +46,13 @@ public class KohlBoardsListReader implements Closeable {
     private static final int FILTER_CATEGORY = 0;
     private static final int FILTER_BOARD = 1;
     private static final char[][] FILTERS = {
-        "<legend".toCharArray(),
+        "<h2".toCharArray(),
         "<li".toCharArray()
     };
     
     private static final char[] CLOSE = ">".toCharArray();
     private static final char[] LI_CLOSE = "</li>".toCharArray();
-    private static final char[] LEGEND_CLOSE = "</legend>".toCharArray();
+    private static final char[] LEGEND_CLOSE = "</h2>".toCharArray();
     
     private static final Pattern BOARD_PATTERN = Pattern.compile("/(\\w+)/(?:\\s+-\\s+(.*))?", Pattern.DOTALL);
     
