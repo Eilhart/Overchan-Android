@@ -49,12 +49,15 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.text.InputType;
+import android.util.TypedValue;
 import android.view.ContextMenu;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -628,6 +631,33 @@ public class PostFormActivity extends Activity implements View.OnClickListener {
         updateCaptcha(true);
     }
 
+    private CaptchaModel adaptCaptcha(CaptchaModel model) {
+        if (model == null || model.bitmap == null || !model.bitmap.hasAlpha()) {
+            return model;
+        }
+        TypedValue typedValue = ThemeUtils.resolveAttribute(getTheme(), android.R.attr.textColorPrimary, true);
+        int color;
+        if (typedValue.type >= TypedValue.TYPE_FIRST_COLOR_INT && typedValue.type <= TypedValue.TYPE_LAST_COLOR_INT) {
+            color = typedValue.data;
+        } else {
+            try {
+                color = CompatibilityUtils.getColor(getResources(), typedValue.resourceId);
+            } catch (Exception e) {
+                return model;
+            }
+        }
+        Bitmap bitmap = Bitmap.createBitmap(model.bitmap.getWidth(), model.bitmap.getHeight(), model.bitmap.getConfig());
+        Bitmap alpha = model.bitmap.extractAlpha();
+        Paint paint = new Paint();
+        paint.setColor(color);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawBitmap(alpha, 0f, 0f, paint);
+        alpha.recycle();
+        model.bitmap.recycle();
+        model.bitmap = bitmap;
+        return model;
+    }
+
     private void updateCaptcha(boolean disableCaptchaField) {
         switchToLoadingCaptcha(disableCaptchaField);
         if (currentTask != null) currentTask.cancel();
@@ -637,7 +667,7 @@ public class PostFormActivity extends Activity implements View.OnClickListener {
             public void run() {
                 try {
                     currentTask = new CancellableTask.BaseCancellableTask();
-                    final CaptchaModel bmp = chan.getNewCaptcha(sendPostModel.boardName, sendPostModel.threadNumber, null, currentTask);
+                    final CaptchaModel bmp = adaptCaptcha(chan.getNewCaptcha(sendPostModel.boardName, sendPostModel.threadNumber, null, currentTask));
                     if (currentTask != null && currentTask.isCancelled()) return;
                     Async.runOnUiThread(new Runnable() {
                         @Override
