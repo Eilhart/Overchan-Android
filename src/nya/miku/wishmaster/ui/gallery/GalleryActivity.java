@@ -717,7 +717,7 @@ public class GalleryActivity extends Activity implements View.OnClickListener {
         @Override
         public void run() {
             if (tag.attachmentModel.type == AttachmentModel.TYPE_OTHER_NOTFILE ||
-                    (settings.doNotDownloadVideos() && tag.attachmentModel.type == AttachmentModel.TYPE_VIDEO)) {
+                    (tag.attachmentModel.type == AttachmentModel.TYPE_VIDEO && !settings.useInternalVideoPlayer())) {
                 setExternalLink(tag);
                 return;
             } else if (tag.attachmentModel.path == null || tag.attachmentModel.path.length() == 0) {
@@ -725,35 +725,40 @@ public class GalleryActivity extends Activity implements View.OnClickListener {
                 return;
             }
             final String[] exception = new String[1];
-            File file = remote.getAttachment(new GalleryAttachmentInfo(tag.attachmentModel, tag.attachmentHash), new AbstractGetterCallback(this) {
-                @Override
-                public void showLoading() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            tag.loadingView.setVisibility(View.VISIBLE);
-                        }
-                    });
+            File file;
+            if (tag.attachmentModel.type == AttachmentModel.TYPE_VIDEO && settings.useWebViewVideoPlayer() && settings.doNotDownloadVideos()) {
+                file = null;
+            } else {
+                file = remote.getAttachment(new GalleryAttachmentInfo(tag.attachmentModel, tag.attachmentHash), new AbstractGetterCallback(this) {
+                    @Override
+                    public void showLoading() {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                tag.loadingView.setVisibility(View.VISIBLE);
+                            }
+                        });
+                    }
+                    @Override
+                    public void onException(String message) {
+                        exception[0] = message;
+                    }
+                    @Override
+                    public void onInteractiveException(GalleryInteractiveExceptionHolder holder) {
+                        if (holder.e == null) return;
+                        exception[0] = getString(R.string.error_interactive_cancelled_format, holder.e.getServiceName());
+                        startActivityForResult(new Intent(GalleryActivity.this, GalleryInteractiveExceptionHandler.class).
+                                putExtra(GalleryInteractiveExceptionHandler.EXTRA_INTERACTIVE_EXCEPTION, holder.e), REQUEST_HANDLE_INTERACTIVE_EXCEPTION);
+                    }
+                });
+
+                if (isCancelled()) return;
+                if (file == null) {
+                    showError(tag, exception[0]);
+                    return;
                 }
-                @Override
-                public void onException(String message) {
-                    exception[0] = message;
-                }
-                @Override
-                public void onInteractiveException(GalleryInteractiveExceptionHolder holder) {
-                    if (holder.e == null) return;
-                    exception[0] = getString(R.string.error_interactive_cancelled_format, holder.e.getServiceName());
-                    startActivityForResult(new Intent(GalleryActivity.this, GalleryInteractiveExceptionHandler.class).
-                            putExtra(GalleryInteractiveExceptionHandler.EXTRA_INTERACTIVE_EXCEPTION, holder.e), REQUEST_HANDLE_INTERACTIVE_EXCEPTION);
-                }
-            });
-            
-            if (isCancelled()) return;
-            if (file == null) {
-                showError(tag, exception[0]);
-                return;
+                tag.file = file;
             }
-            tag.file = file;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -1151,7 +1156,7 @@ public class GalleryActivity extends Activity implements View.OnClickListener {
                 settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
-                    CompatibilityImpl.setBlockNetworkLoads(settings, true);
+                    CompatibilityImpl.setBlockNetworkLoads(settings, false);
                 }
                 
                 setScaleWebView(webView);
@@ -1200,6 +1205,9 @@ public class GalleryActivity extends Activity implements View.OnClickListener {
             }
             
             private Point getImageSize(File file) {
+                if (file == null) {
+                    return new Point(0, 0);
+                }
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inJustDecodeBounds = true;
                 BitmapFactory.decodeFile(file.getAbsolutePath(), options);
@@ -1207,6 +1215,9 @@ public class GalleryActivity extends Activity implements View.OnClickListener {
             }
             
             private boolean useFallback(File file) {
+                if (file == null) {
+                    return true;
+                }
                 String path = file.getPath().toLowerCase(Locale.US);
                 if (path.endsWith(".png")) return false;
                 if (path.endsWith(".jpg")) return false;
@@ -1225,7 +1236,11 @@ public class GalleryActivity extends Activity implements View.OnClickListener {
                     tag.layout.addView(webView);
                     if (settings.fallbackWebView() || useFallback(file)) {
                         prepareWebView(webView);
-                        webView.loadUrl(Uri.fromFile(file).toString());
+                        if (file == null) {
+                            webView.loadUrl(remote.getAbsoluteUrl(tag.attachmentModel.path));
+                        } else {
+                            webView.loadUrl(Uri.fromFile(file).toString());
+                        }
                     } else {
                         JSWebView.setImage(webView, file);
                     }
