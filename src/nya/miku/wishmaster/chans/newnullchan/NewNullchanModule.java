@@ -39,7 +39,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import cz.msebera.android.httpclient.Header;
+import cz.msebera.android.httpclient.HttpHeaders;
 import cz.msebera.android.httpclient.impl.cookie.BasicClientCookie;
+import cz.msebera.android.httpclient.message.BasicHeader;
 import nya.miku.wishmaster.R;
 import nya.miku.wishmaster.api.CloudflareChanModule;
 import nya.miku.wishmaster.api.interfaces.CancellableTask;
@@ -323,7 +325,12 @@ public class NewNullchanModule extends CloudflareChanModule {
         JSONObject result = new JSONObject(response);
         if (!result.optBoolean("ok", false)) {
             String errorMessage = result.optString("reason");
-            if (errorMessage.length() > 0) throw new Exception(errorMessage);
+            if (errorMessage.length() > 0) {
+                if (errorMessage.startsWith("error: ")) {
+                    errorMessage = errorMessage.substring(7);
+                }
+                throw new Exception(errorMessage);
+            }
             throw new Exception(result.toString());
         }
         String token = result.getJSONObject("attachment").getString("token");
@@ -377,6 +384,18 @@ public class NewNullchanModule extends CloudflareChanModule {
         String parent = null;
         String comment = model.comment;
 
+        UrlPageModel urlModel = new UrlPageModel();
+        urlModel.chanName = getChanName();
+        urlModel.boardName = model.boardName;
+        if (model.threadNumber == null) {
+            urlModel.type = UrlPageModel.TYPE_BOARDPAGE;
+            urlModel.boardPage = UrlPageModel.DEFAULT_FIRST_PAGE;
+        } else {
+            urlModel.type = UrlPageModel.TYPE_THREADPAGE;
+            urlModel.threadNumber = model.threadNumber;
+        }
+        String referer = buildUrl(urlModel);
+        
         if (model.threadNumber != null) {
             Pattern referencePattern = Pattern.compile("^\\s*>>(\\d+)");
             Matcher matcher = referencePattern.matcher(comment);
@@ -396,18 +415,18 @@ public class NewNullchanModule extends CloudflareChanModule {
             url = getUsingUrl() + "api/thread/create?board=" + model.boardName + "&session=" + sessionId;
         }
         JSONObject jsonPayload = new JSONObject();
-        jsonPayload.put("board", model.boardName);
-        jsonPayload.put("thread", model.threadNumber != null ? model.threadNumber : JSONObject.NULL);
-        jsonPayload.put("parent", parent != null ? parent : JSONObject.NULL);
+        jsonPayload.put("board", JSONObject.NULL);
+        jsonPayload.put("thread", JSONObject.NULL);
+        jsonPayload.put("parent", JSONObject.NULL);
+        jsonPayload.put("sage", model.sage);
         jsonPayload.put("message", comment);
-        
+        JSONArray images = new JSONArray();
         if (model.attachments != null && model.attachments.length > 0) {
-            JSONArray images = new JSONArray();
             for (int i=0; i<model.attachments.length; ++i) {
                 images.put(uploadFile(model.attachments[i], listener, task));
             }
-            jsonPayload.put("images", images);
         }
+        jsonPayload.put("images", images);
         
         String captchaId = null;
         try {
@@ -417,7 +436,8 @@ public class NewNullchanModule extends CloudflareChanModule {
         captchaId = validateCaptcha(captchaId, listener, task);
         jsonPayload.put("captcha", captchaId != null ? captchaId : JSONObject.NULL);
         JSONEntry payload = new JSONEntry(jsonPayload);
-        HttpRequestModel request = HttpRequestModel.builder().setPOST(payload).setNoRedirect(true).build();
+        Header[] customHeaders = new Header[] { new BasicHeader(HttpHeaders.REFERER, referer) };
+        HttpRequestModel request = HttpRequestModel.builder().setPOST(payload).setCustomHeaders(customHeaders).setNoRedirect(true).build();
         String response = null;
         JSONObject result = null;
         try {
@@ -449,7 +469,7 @@ public class NewNullchanModule extends CloudflareChanModule {
             throw new Exception(response);
         }
         JSONObject post = result.getJSONObject("post");
-        UrlPageModel urlModel = new UrlPageModel();
+        urlModel = new UrlPageModel();
         urlModel.type = UrlPageModel.TYPE_THREADPAGE;
         urlModel.boardName = post.optString("boardDir", model.boardName);
         urlModel.chanName = getChanName();
