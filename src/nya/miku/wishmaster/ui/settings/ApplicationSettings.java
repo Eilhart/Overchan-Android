@@ -349,7 +349,7 @@ public class ApplicationSettings {
     }
 
     public boolean doNotDownloadVideos() {
-        return !useInternalVideoPlayer() && preferences.getBoolean(resources.getString(R.string.pref_key_do_not_download_videos), false);
+        return preferences.getBoolean(resources.getString(R.string.pref_key_do_not_download_videos), false);
     }
     
     public boolean useInternalAudioPlayer() {
