@@ -49,12 +49,15 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.text.InputType;
+import android.util.TypedValue;
 import android.view.ContextMenu;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -598,6 +601,9 @@ public class PostFormActivity extends Activity implements View.OnClickListener {
         if (captchaModel != null) {
             captchaLoading.setVisibility(View.GONE);
             captchaView.setVisibility(View.VISIBLE);
+            if (captchaModel.adaptable) {
+                captchaModel.bitmap = adaptCaptchaColors(captchaModel.bitmap);
+            }
             captchaView.setImageBitmap(captchaModel.bitmap);
             captchaField.setEnabled(true);
             captchaField.setInputType(
@@ -626,6 +632,32 @@ public class PostFormActivity extends Activity implements View.OnClickListener {
 
     private void updateCaptcha() {
         updateCaptcha(true);
+    }
+
+    private Bitmap adaptCaptchaColors(Bitmap bitmap) {
+        if (bitmap == null || !bitmap.hasAlpha()) {
+            return bitmap;
+        }
+        TypedValue typedValue = ThemeUtils.resolveAttribute(getTheme(), android.R.attr.textColorPrimary, true);
+        int color;
+        if (typedValue.type >= TypedValue.TYPE_FIRST_COLOR_INT && typedValue.type <= TypedValue.TYPE_LAST_COLOR_INT) {
+            color = typedValue.data;
+        } else {
+            try {
+                color = CompatibilityUtils.getColor(getResources(), typedValue.resourceId);
+            } catch (Exception e) {
+                return bitmap;
+            }
+        }
+        Bitmap adapted = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+        Bitmap alpha = bitmap.extractAlpha();
+        Paint paint = new Paint();
+        paint.setColor(color);
+        Canvas canvas = new Canvas(adapted);
+        canvas.drawBitmap(alpha, 0f, 0f, paint);
+        alpha.recycle();
+        bitmap.recycle();
+        return adapted;
     }
 
     private void updateCaptcha(boolean disableCaptchaField) {
