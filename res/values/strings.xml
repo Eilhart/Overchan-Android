@@ -154,6 +154,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="menu_attach_file">Attach file</string>
     <string name="menu_attach_gallery">Gallery</string>
     <string name="menu_save_page">Save</string>
+    <string name="menu_reload_thread">Reload</string>
     <string name="menu_board_gallery">Gallery</string>
     <string name="menu_clear_history">Clear history</string>
     <string name="menu_clear_favorites">Remove all bookmarks</string>
