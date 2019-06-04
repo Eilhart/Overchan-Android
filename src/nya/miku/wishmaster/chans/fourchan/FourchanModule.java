@@ -587,7 +587,10 @@ public class FourchanModule extends CloudflareChanModule {
             return model;
         }
         
-        if (!domain.equals("4chan.org") && !domain.endsWith(".4chan.org")) throw new IllegalArgumentException("wrong chan");
+        if (!domain.equals("4chan.org") && !domain.endsWith(".4chan.org") &&
+            !domain.equals("4channel.org") && !domain.endsWith(".4channel.org")) {
+            throw new IllegalArgumentException("wrong chan");
+        }
         
         UrlPageModel model = new UrlPageModel();
         model.chanName = CHAN_NAME;
