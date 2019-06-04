@@ -539,7 +539,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="pref_autoupdate_only_wifi_title">Только через Wi-Fi</string>
     <string name="pref_autoupdate_only_wifi_summary">Автообновление только через Wi-Fi</string>
     <string name="pref_autoupdate_delay_title">Интервал (в секундах)</string>
-    <string name="pref_autoupdate_delay_summary">Интервал автообновления, не менее 30 секунд</string>
+    <string name="pref_autoupdate_delay_summary">Интервал автообновления</string>
     <string name="pref_autoupdate_delay_hint">по умолчанию 60 секунд</string>
     <string name="pref_autoupdate_delay_incorrect">Некорректное значение</string>
     <string name="pref_autoupdate_background_title">Обновление фоновых вкладок</string>
@@ -636,6 +636,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="mark_code">Код</string>
     <string name="pref_post_thumbnail_scale_title">Размер эскизов</string>
     <string name="pref_key_post_thumbnail_scale_toast">Рекомендуется очистить кэш</string>
+    <string name="pref_show_default_names_title">Отображать имена по умолчанию</string>
+    <string name="pref_show_default_names_summary">Не скрывать поле имя у анонимных постеров</string>
+    <string name="pref_wide_popup_dialogs_title">Широкие всплывающие диалоги</string>
+    <string name="pref_wide_popup_dialogs_summary">Упрощает чтение всплывающих диалогов на маленьких экранах</string>
     <string name="newtab_select_local_directory">Указать расположение каталога</string>
     <string name="pref_scroll_to_active_tab_title">Прокрутка до активной вкладки</string>
     <string name="pref_scroll_to_active_tab_summary">Прокручивать до активной вкладки при закрытии неактивной вкладки</string>
