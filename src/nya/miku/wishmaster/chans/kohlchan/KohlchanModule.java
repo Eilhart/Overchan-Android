@@ -18,23 +18,28 @@
 
 package nya.miku.wishmaster.chans.kohlchan;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
+import android.preference.EditTextPreference;
+import android.preference.Preference;
+import android.preference.PreferenceGroup;
 import android.support.v4.content.res.ResourcesCompat;
+import android.text.InputType;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import nya.miku.wishmaster.R;
-import nya.miku.wishmaster.api.AbstractVichanModule;
+import nya.miku.wishmaster.api.AbstractLynxChanModule;
 import nya.miku.wishmaster.api.interfaces.CancellableTask;
 import nya.miku.wishmaster.api.interfaces.ProgressListener;
 import nya.miku.wishmaster.api.models.BoardModel;
-import nya.miku.wishmaster.api.models.SendPostModel;
 import nya.miku.wishmaster.api.models.SimpleBoardModel;
-import nya.miku.wishmaster.api.models.UrlPageModel;
 import nya.miku.wishmaster.common.IOUtils;
 import nya.miku.wishmaster.common.Logger;
 import nya.miku.wishmaster.http.streamer.HttpRequestModel;
@@ -42,13 +47,23 @@ import nya.miku.wishmaster.http.streamer.HttpResponseModel;
 import nya.miku.wishmaster.http.streamer.HttpStreamer;
 import nya.miku.wishmaster.http.streamer.HttpWrongStatusCodeException;
 
-public class KohlchanModule extends AbstractVichanModule {
+public class KohlchanModule extends AbstractLynxChanModule {
     private static final String TAG = "KohlchanModule";
     
     static final String CHAN_NAME = "kohlchan.net";
+    private static final String DISPLAYING_NAME = "Kohlchan";
+    private static final String DEFAULT_DOMAIN = "kohlchan.net";
+    private static final String PREF_KEY_DOMAIN = "domain";
+    private static final List<String> DOMAINS_LIST = Arrays.asList(new String[] {
+            DEFAULT_DOMAIN, "kohlchan.mett.ru", "kohlchankxguym67.onion", "fastkohlp6h2seef.onion"
+    });
+    private static final String DOMAINS_HINT = "kohlchan.net, kohlchan.mett.ru, kohlchankxguym67.onion, fastkohlp6h2seef.onion (1 hop)";
+    
     private static final String[] ATTACHMENT_FORMATS = new String[] {
             "jpg", "jpeg", "bmp", "gif", "png", "mp3", "ogg", "flac", "opus", "webm", "mp4", "7z", "zip", "pdf", "epub", "txt" };
     
+    private String domain;
+
     public KohlchanModule(SharedPreferences preferences, Resources resources) {
         super(preferences, resources);
     }
@@ -59,15 +74,70 @@ public class KohlchanModule extends AbstractVichanModule {
     }
     
     @Override
+    protected void initHttpClient() {
+        updateDomain(preferences.getString(getSharedKey(PREF_KEY_DOMAIN), DEFAULT_DOMAIN));
+    }
+
+    @Override
     protected String getUsingDomain() {
-        return CHAN_NAME;
+        return domain;
+    }
+
+    private void addDomainPreferences(PreferenceGroup group) {
+        Context context = group.getContext();
+        Preference.OnPreferenceChangeListener updateDomainListener = new Preference.OnPreferenceChangeListener() {
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                if (preference.getKey().equals(getSharedKey(PREF_KEY_DOMAIN))) {
+                    updateDomain((String) newValue);
+                    return true;
+                }
+                return false;
+            }
+        };
+        EditTextPreference domainPref = new EditTextPreference(context);
+        domainPref.setTitle(R.string.pref_domain);
+        domainPref.setDialogTitle(R.string.pref_domain);
+        domainPref.setSummary(resources.getString(R.string.pref_domain_summary, DOMAINS_HINT));
+        domainPref.setKey(getSharedKey(PREF_KEY_DOMAIN));
+        domainPref.getEditText().setHint(DEFAULT_DOMAIN);
+        domainPref.getEditText().setSingleLine();
+        domainPref.getEditText().setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        domainPref.setOnPreferenceChangeListener(updateDomainListener);
+        group.addPreference(domainPref);
+    }
+
+    @Override
+    public void addPreferencesOnScreen(PreferenceGroup preferenceGroup) {
+        addDomainPreferences(preferenceGroup);
+        super.addPreferencesOnScreen(preferenceGroup);
+    }
+
+    @Override
+    protected String[] getAllDomains() {
+        String curDomain = getUsingDomain();
+        String[] domains;
+        if (DOMAINS_LIST.contains(curDomain)) {
+            domains = DOMAINS_LIST.toArray(new String[DOMAINS_LIST.size()]);
+        } else {
+            domains = DOMAINS_LIST.toArray(new String[DOMAINS_LIST.size() + 1]);
+            domains[DOMAINS_LIST.size()] = curDomain;
+        }
+        return domains;
+    }
+
+    private void updateDomain(String domain) {
+        if (domain.endsWith("/")) domain = domain.substring(0, domain.length() - 1);
+        if (domain.contains("//")) domain = domain.substring(domain.indexOf("//") + 2);
+        if (domain.equals("")) domain = DEFAULT_DOMAIN;
+        this.domain = domain;
     }
     
     @Override
     public String getDisplayingName() {
-        return "Kohlchan";
+        return DISPLAYING_NAME;
     }
-
+    
     @Override
     protected boolean canCloudflare() {
         return true;
@@ -85,7 +155,7 @@ public class KohlchanModule extends AbstractVichanModule {
     
     @Override
     public SimpleBoardModel[] getBoardsList(ProgressListener listener, CancellableTask task, SimpleBoardModel[] oldBoardsList) throws Exception {
-        String url = getUsingUrl() + "sidebar.html";
+        String url = getUsingUrl() + ".static/pages/sidebar.html";
 
         HttpResponseModel responseModel = null;
         KohlBoardsListReader in = null;
@@ -132,29 +202,10 @@ public class KohlchanModule extends AbstractVichanModule {
     public BoardModel getBoard(String shortName, ProgressListener listener, CancellableTask task) throws Exception {
         BoardModel model = super.getBoard(shortName, listener, task);
         model.defaultUserName = "Bernd";
-        model.timeZoneId = "Europe/Berlin";
         model.attachmentsMaxCount = 4;
         model.allowNames = false;
         model.allowEmails = false;
         model.attachmentsFormatFilters = ATTACHMENT_FORMATS;
         return model;
     }
-    
-    @Override
-    public String sendPost(SendPostModel model, ProgressListener listener, CancellableTask task) throws Exception {
-        super.sendPost(model, listener, task);
-        return null;
-    }
-
-    @Override
-    public UrlPageModel parseUrl(String url) throws IllegalArgumentException {
-        return super.parseUrl(url.replaceAll("-\\w+.*html", ".html"));
-    }
-
-    @Override
-    public String fixRelativeUrl(String url) {
-        if (url.startsWith("?/")) url = url.substring(1);
-        return super.fixRelativeUrl(url);
-    }
-    
 }
