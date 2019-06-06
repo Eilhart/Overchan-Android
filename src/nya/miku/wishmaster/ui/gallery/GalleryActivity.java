@@ -44,6 +44,7 @@ import nya.miku.wishmaster.lib.gallery.TouchGifView;
 import nya.miku.wishmaster.lib.gallery.WebViewFixed;
 import nya.miku.wishmaster.lib.gallery.verticalviewpager.VerticalViewPagerFixed;
 import nya.miku.wishmaster.lib.gifdrawable.GifDrawable;
+import nya.miku.wishmaster.lib.UriFileUtils;
 import nya.miku.wishmaster.ui.AppearanceUtils;
 import nya.miku.wishmaster.ui.Attachments;
 import nya.miku.wishmaster.ui.CompatibilityImpl;
@@ -475,8 +476,8 @@ public class GalleryActivity extends Activity implements View.OnClickListener {
                 break;
         }
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(Uri.fromFile(tag.file), mime);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setDataAndType(UriFileUtils.getContentUri(this, tag.file), mime);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(intent);
     }
     
@@ -542,7 +543,7 @@ public class GalleryActivity extends Activity implements View.OnClickListener {
                 break;
         }
         Logger.d(TAG, shareIntent.getType());
-        shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(tag.file));
+        shareIntent.putExtra(Intent.EXTRA_STREAM, UriFileUtils.getContentUri(this, tag.file));
         startActivity(Intent.createChooser(shareIntent, getString(R.string.share_via)));
     }
     
