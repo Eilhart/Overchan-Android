@@ -67,9 +67,16 @@ public class UriFileUtils {
             else if (isDownloadsDocument(uri)) {
 
                 final String id = CompatibilityImpl.getDocumentId(uri);
-                final Uri contentUri = ContentUris.withAppendedId(Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
-
-                return getDataColumn(context, contentUri, null, null);
+                if (id.startsWith("raw:")) {
+                    return id.substring(4);
+                }
+                try {
+                    final Uri contentUri = ContentUris.withAppendedId(
+                            Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
+                    return getDataColumn(context, contentUri, null, null);
+                } catch (Exception e) {
+                    return null;
+                }
             }
             // MediaProvider
             else if (isMediaDocument(uri)) {
