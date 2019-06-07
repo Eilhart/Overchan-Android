@@ -360,6 +360,9 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
         navigationBarView = rootView.findViewById(R.id.board_navigation_bar);
         searchBarView = rootView.findViewById(R.id.board_search_bar);
         pullableLayout = (SwipeRefreshLayout)rootView.findViewById(R.id.board_pullable_layout);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            pullableLayout.setProgressViewOffset(false, 0, 64 + ThemeUtils.getActionbarSize(activity.getTheme(), resources));
+        }
         listView = (ListView)rootView.findViewById(android.R.id.list);
         if (pageType != TYPE_POSTSLIST) listView.setOnItemClickListener(this);
         registerForContextMenu(listView);
@@ -1491,18 +1494,21 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
                                     currentTopDelta = 0;
                                 }
                                 
-                                boolean top = firstVisibleItem == 0 && firstVisibleTop == 0;
+                                boolean top = firstVisibleItem == 0;
                                 long currentTime = System.currentTimeMillis();
                                 if (top || currentTime - lastActionTime > 1000) {
-                                    if (currentTopDelta < -maxTopDelta) {
-                                        if (CompatibilityImpl.hideActionBar(activity)) {
-                                            lastActionTime = currentTime;
-                                            currentTopDelta = 0;
-                                        }
-                                    } else if (top || currentTopDelta > maxTopDelta) {
+                                    if (top || currentTopDelta > maxTopDelta) {
                                         if (CompatibilityImpl.showActionBar(activity)) {
                                             lastActionTime = currentTime;
                                             currentTopDelta = 0;
+                                        }
+                                    } else if (currentTopDelta < -maxTopDelta) {
+                                        View searchBar = activity.findViewById(R.id.board_search_bar);
+                                        if (searchBar == null || !searchBar.isShown()) {
+                                            if (CompatibilityImpl.hideActionBar(activity)) {
+                                                lastActionTime = currentTime;
+                                                currentTopDelta = 0;
+                                            }
                                         }
                                     }
                                 }
@@ -1557,9 +1563,16 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
         
     }
     
-    private static void hackListViewSetPosition(final ListView listView, final int position, final int top) {
+    private void hackListViewSetPosition(final ListView listView, final int position, final int top) {
         try {
-            listView.setSelectionFromTop(position, top);
+            final int adjustment;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                adjustment = ThemeUtils.getActionbarSize(activity.getTheme(), resources);
+            } else {
+                adjustment = 0;
+            }
+            final int adjTop = top - adjustment;
+            listView.setSelectionFromTop(position, adjTop);
             AppearanceUtils.callWhenLoaded(listView, new Runnable() {
                 @Override
                 public void run() {
@@ -1567,8 +1580,8 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
                         int setPosition = listView.getFirstVisiblePosition();
                         int setTop = listView.getChildAt(0).getTop();
                         int incTop = listView.getChildCount() < 2 ? 0 : Math.max(0, -listView.getChildAt(1).getTop());
-                        if (setPosition != position || setTop != top || incTop > 0) {
-                            listView.setSelectionFromTop(position, top + incTop);
+                        if (setPosition != position || setTop != adjTop || incTop > 0) {
+                            listView.setSelectionFromTop(position, adjTop + incTop);
                         }
                     } catch(Exception e) {
                         Logger.e(TAG, e);
