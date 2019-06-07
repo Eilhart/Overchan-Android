@@ -50,7 +50,6 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.preference.EditTextPreference;
-import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.support.v4.content.res.ResourcesCompat;
@@ -69,7 +68,6 @@ import nya.miku.wishmaster.api.models.SendPostModel;
 import nya.miku.wishmaster.api.models.SimpleBoardModel;
 import nya.miku.wishmaster.api.models.UrlPageModel;
 import nya.miku.wishmaster.api.util.ChanModels;
-import nya.miku.wishmaster.api.util.LazyPreferences;
 import nya.miku.wishmaster.api.util.ReplacingReader;
 import nya.miku.wishmaster.api.util.WakabaReader;
 import nya.miku.wishmaster.common.Async;
@@ -93,7 +91,7 @@ public class PonyachModule extends AbstractWakabaModule {
         DateFormatSymbols symbols = new DateFormatSymbols();
         symbols.setMonths(new String[] {
                 "Янв", "Фев", "Мар", "Апр", "Май", "Июнь", "Июль", "Авг", "Снт", "Окт", "Ноя", "Дек" });
-        DATE_FORMAT = new SimpleDateFormat("dd MMMM yyyy HH:mm", symbols);
+        DATE_FORMAT = new SimpleDateFormat("dd MMMM yyyy HH:mm:ss", symbols);
         DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT+3"));
     }
     
@@ -132,6 +130,11 @@ public class PonyachModule extends AbstractWakabaModule {
     }
     
     @Override
+    protected boolean canCloudflare() {
+        return true;
+    }
+    
+    @Override
     protected boolean canHttps() {
         return true;
     }
@@ -161,7 +164,6 @@ public class PonyachModule extends AbstractWakabaModule {
         super.initHttpClient();
         loadPhpCookies();
     }
-    
     
     private void loadPhpCookies() {
         loadPhpCookies(getUsingDomain());
@@ -254,6 +256,7 @@ public class PonyachModule extends AbstractWakabaModule {
         preferenceGroup.addPreference(domainPref);
         
         addHttpsPreference(preferenceGroup, useHttpsDefaultValue());
+        addCloudflareRecaptchaFallbackPreference(preferenceGroup);
         addProxyPreferences(preferenceGroup);
     }
     
@@ -262,10 +265,10 @@ public class PonyachModule extends AbstractWakabaModule {
         Reader reader = new ReplacingReader(new BufferedReader(new InputStreamReader(stream)),
                 "<span class=\"unkfunc0\"", "<span class=\"unkfunc\"");
         return new WakabaReader(reader, DATE_FORMAT, canCloudflare()) {
-            private final Pattern aHrefPattern = Pattern.compile("<a\\s+href=\"(.*?)\"", Pattern.DOTALL);
+            private final Pattern aHrefPattern = Pattern.compile("<a\\s+href=\"(.*?)\"(?:.+?download=\"(.+?)\")?", Pattern.DOTALL);
             private final Pattern attachmentSizePattern = Pattern.compile("([\\d\\.]+)[KM]B");
             private final Pattern attachmentPxSizePattern = Pattern.compile("(\\d+)x(\\d+)");
-            private final char[] dateFilter = "class=\"mobile_date dast-date\" data-shortformat=\"".toCharArray();
+            private final char[] dateFilter = "class=\"mobile_date dast-date\"".toCharArray();
             private final char[] attachmentFilter = "class=\"filesize fs_".toCharArray();
             private ArrayList<AttachmentModel> myAttachments = new ArrayList<>();
             private int curDatePos = 0;
@@ -275,7 +278,8 @@ public class PonyachModule extends AbstractWakabaModule {
                 if (ch == dateFilter[curDatePos]) {
                     ++curDatePos;
                     if (curDatePos == dateFilter.length) {
-                        parsePonyachDate(readUntilSequence("\"".toCharArray()).trim());
+                        skipUntilSequence(">".toCharArray());
+                        parsePonyachDate(readUntilSequence("<".toCharArray()).trim());
                         curDatePos = 0;
                     }
                 } else {
@@ -312,7 +316,7 @@ public class PonyachModule extends AbstractWakabaModule {
                     } else {
                         attachment.thumbnail = attachment.thumbnail.replace(".webm", ".png");
                     }
-                    
+                    attachment.originalName = aHrefMatcher.group(2);
                     String ext = attachment.path.substring(attachment.path.lastIndexOf('.') + 1);
                     switch (ext) {
                         case "jpg":

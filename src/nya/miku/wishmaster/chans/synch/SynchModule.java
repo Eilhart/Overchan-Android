@@ -119,6 +119,11 @@ public class SynchModule extends AbstractVichanModule {
     }
     
     @Override
+    protected boolean canCloudflare() {
+        return true;
+    }
+    
+    @Override
     protected boolean canHttps() {
         return true;
     }
@@ -182,7 +187,7 @@ public class SynchModule extends AbstractVichanModule {
     
     @Override
     public String fixRelativeUrl(String url) {
-        if (url.startsWith("/src/") | url.startsWith("/thumb/")) return "http://cdn.syn-ch.com" + url;
+        if (url.startsWith("/src/") | url.startsWith("/thumb/")) return (useHttps() ? "https://" : "http://") + "cdn." + getUsingDomain() + url;
         return super.fixRelativeUrl(url);
     }
 
