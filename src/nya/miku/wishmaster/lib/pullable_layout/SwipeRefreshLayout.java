@@ -590,7 +590,7 @@ public class SwipeRefreshLayout extends ViewGroup {
      *         scroll up. Override this if the child view is a custom view.
      */
     public boolean canChildScrollUp() {
-        if (android.os.Build.VERSION.SDK_INT < 14) {
+//        if (android.os.Build.VERSION.SDK_INT < 14) {
             if (mTarget instanceof AbsListView) {
                 final AbsListView absListView = (AbsListView) mTarget;
                 return absListView.getChildCount() > 0
@@ -599,16 +599,16 @@ public class SwipeRefreshLayout extends ViewGroup {
             } else {
                 return mTarget.getScrollY() > 0;
             }
-        } else {
-            return ViewCompat.canScrollVertically(mTarget, -1);
-        }
+//        } else {
+//            return ViewCompat.canScrollVertically(mTarget, -1);
+//        }
     }
     
     /**
      * Этот метод добавлен
      */
     public boolean canChildScrollDown() { //изменено
-        if (android.os.Build.VERSION.SDK_INT < 14) {
+//        if (android.os.Build.VERSION.SDK_INT < 14) {
             if (mTarget instanceof AbsListView) {
                 final AbsListView absListView = (AbsListView) mTarget;
                 return absListView.getCount() > 0 
@@ -620,9 +620,9 @@ public class SwipeRefreshLayout extends ViewGroup {
             } else {
                 return true; //остальные случаи не обрабатываются
             }
-        } else {
-            return ViewCompat.canScrollVertically(mTarget, 1);
-        }
+//        } else {
+//            return ViewCompat.canScrollVertically(mTarget, 1);
+//        }
     }
 
     /**
