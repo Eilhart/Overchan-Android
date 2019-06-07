@@ -531,7 +531,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="pref_autoupdate_only_wifi_title">Wi-Fi only</string>
     <string name="pref_autoupdate_only_wifi_summary">Auto-update over Wi-Fi only</string>
     <string name="pref_autoupdate_delay_title">Interval (in seconds)</string>
-    <string name="pref_autoupdate_delay_summary">Auto-update interval, not less than 30 seconds</string>
+    <string name="pref_autoupdate_delay_summary">Auto-update interval</string>
     <string name="pref_autoupdate_delay_hint">60 seconds by default</string>
     <string name="pref_autoupdate_delay_incorrect">Incorrect value</string>
     <string name="pref_autoupdate_background_title">Update background tabs</string>
@@ -627,6 +627,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="app_import_overwrite_warning_message">All data will be irreversibly overwritten</string>
     <string name="pref_post_thumbnail_scale_title">Post thumbnail size</string>
     <string name="pref_key_post_thumbnail_scale_toast">It\'s recommended to clear cache after thumbnail scale has been changed</string>
+    <string name="pref_show_default_names_title">Show default names</string>
+    <string name="pref_show_default_names_summary">Do not hide the name field of anonymous posts</string>
+    <string name="pref_wide_popup_dialogs_title">Wide pop-up dialogs</string>
+    <string name="pref_wide_popup_dialogs_summary">Makes pop-up dialogs easier to read on small screens</string>
     <string name="newtab_select_local_directory">Specify directory location</string>
     <string name="pref_scroll_to_active_tab_summary">Scroll to the active tab when closing inactive tab</string>
     <string name="pref_scroll_to_active_tab_title">Scroll to the active tab</string>
