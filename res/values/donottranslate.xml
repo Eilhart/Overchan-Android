@@ -104,6 +104,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="pref_theme_value_futaba">PREF_THEME_VALUE_FUTABA</string>
     <string name="pref_theme_value_photon">PREF_THEME_VALUE_PHOTON</string>
     <string name="pref_theme_value_neutron">PREF_THEME_VALUE_NEUTRON</string>
+    <string name="pref_theme_value_burichan">PREF_THEME_VALUE_BURICHAN</string>
     <string name="pref_theme_value_gurochan">PREF_THEME_VALUE_GUROCHAN</string>
     <string name="pref_theme_value_tomorrow">PREF_THEME_VALUE_TOMORROW</string>
     <string name="pref_theme_value_mikuba">PREF_THEME_VALUE_MIKUBA</string>
@@ -113,6 +114,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <item>@string/pref_theme_value_futaba</item>
         <item>@string/pref_theme_value_photon</item>
         <item>@string/pref_theme_value_neutron</item>
+        <item>@string/pref_theme_value_burichan</item>
         <item>@string/pref_theme_value_gurochan</item>
         <item>@string/pref_theme_value_tomorrow</item>
         <item>@string/pref_theme_value_mikuba</item>
