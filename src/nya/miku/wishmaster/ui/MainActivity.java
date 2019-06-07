@@ -501,6 +501,7 @@ public class MainActivity extends FragmentActivity {
         
         if (settings.isDisplayDate != newSettings.isDisplayDate ||
                 (settings.isDisplayDate && (settings.isLocalTime != newSettings.isLocalTime)) ||
+                settings.showDefaultNames != newSettings.showDefaultNames ||
                 MainApplication.getInstance().settings.getAutohideRulesJson().hashCode() != autohideRulesHash ||
                 MainApplication.getInstance().settings.openSpoilers() != openSpoilers ||
                 MainApplication.getInstance().settings.highlightSubscriptions() != highlightSubscriptions ||
