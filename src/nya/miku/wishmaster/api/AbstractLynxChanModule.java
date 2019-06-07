@@ -134,7 +134,9 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         model.lastPage = boardJson.optInt("pageCount", BoardModel.LAST_PAGE_UNDEFINED);
         JSONArray settingsJson = boardJson.optJSONArray("settings");
         ArrayList<String> settings = new ArrayList<String>();
-        for(int i = 0, len = settingsJson.length(); i < len; ++i) settings.add(settingsJson.getString(i));
+        if (settingsJson != null) {
+            for(int i = 0, len = settingsJson.length(); i < len; ++i) settings.add(settingsJson.getString(i));
+        }
         model.allowNames = !settings.contains("forceAnonymity");
         model.allowDeletePosts = !settings.contains("blockDeletion");
         model.allowDeleteFiles = model.allowDeletePosts;

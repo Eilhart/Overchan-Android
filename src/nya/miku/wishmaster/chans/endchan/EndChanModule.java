@@ -45,10 +45,15 @@ public class EndChanModule extends AbstractLynxChanModule {
     private static final String CHAN_NAME = "endchan.xyz";
     private static final String DEFAULT_DOMAIN = "endchan.xyz";
     private static final String PREF_KEY_DOMAIN = "domain";
-    private String domain = DEFAULT_DOMAIN;
+    private String domain;
 
     public EndChanModule(SharedPreferences preferences, Resources resources) {
         super(preferences, resources);
+    }
+    
+    @Override
+    protected void initHttpClient() {
+        updateDomain(preferences.getString(getSharedKey(PREF_KEY_DOMAIN), DEFAULT_DOMAIN));
     }
 
     @Override
@@ -94,7 +99,15 @@ public class EndChanModule extends AbstractLynxChanModule {
 
     @Override
     protected String[] getAllDomains() {
-        return DOMAINS_LIST.toArray(new String[DOMAINS_LIST.size()]);
+        String curDomain = getUsingDomain();
+        String[] domains;
+        if (DOMAINS_LIST.contains(curDomain)) {
+            domains = DOMAINS_LIST.toArray(new String[DOMAINS_LIST.size()]);
+        } else {
+            domains = DOMAINS_LIST.toArray(new String[DOMAINS_LIST.size() + 1]);
+            domains[DOMAINS_LIST.size()] = curDomain;
+        }
+        return domains;
     }
 
     private void updateDomain(String domain) {
