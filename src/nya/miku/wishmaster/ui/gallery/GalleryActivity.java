@@ -159,7 +159,7 @@ public class GalleryActivity extends Activity implements View.OnClickListener {
             if (activity == null) return;
             int progress = msg.arg1;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                if (progress != Window.PROGRESS_END) {
+                if (progress < Window.PROGRESS_END) {
                     if (activity.progressBar.getVisibility() == View.GONE) activity.progressBar.setVisibility(View.VISIBLE);
                     activity.progressBar.setProgress(progress);
                 } else {
