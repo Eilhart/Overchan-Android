@@ -446,7 +446,7 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         return downloadCaptcha(captchaUrl, listener, task);
     }
 
-    private String computeFileMD5(File file) throws NoSuchAlgorithmException, IOException {
+    public static String computeFileMD5(File file) throws NoSuchAlgorithmException, IOException {
         MessageDigest messageDigest = MessageDigest.getInstance("MD5");
         messageDigest.reset();
 

@@ -22,13 +22,17 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.support.v4.content.res.ResourcesCompat;
 import android.text.InputType;
+import android.webkit.MimeTypeMap;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -39,13 +43,17 @@ import nya.miku.wishmaster.api.AbstractLynxChanModule;
 import nya.miku.wishmaster.api.interfaces.CancellableTask;
 import nya.miku.wishmaster.api.interfaces.ProgressListener;
 import nya.miku.wishmaster.api.models.BoardModel;
+import nya.miku.wishmaster.api.models.SendPostModel;
 import nya.miku.wishmaster.api.models.SimpleBoardModel;
+import nya.miku.wishmaster.api.models.UrlPageModel;
 import nya.miku.wishmaster.common.IOUtils;
 import nya.miku.wishmaster.common.Logger;
+import nya.miku.wishmaster.http.ExtendedMultipartBuilder;
 import nya.miku.wishmaster.http.streamer.HttpRequestModel;
 import nya.miku.wishmaster.http.streamer.HttpResponseModel;
 import nya.miku.wishmaster.http.streamer.HttpStreamer;
 import nya.miku.wishmaster.http.streamer.HttpWrongStatusCodeException;
+import nya.miku.wishmaster.lib.org_json.JSONObject;
 
 public class KohlchanModule extends AbstractLynxChanModule {
     private static final String TAG = "KohlchanModule";
@@ -57,7 +65,7 @@ public class KohlchanModule extends AbstractLynxChanModule {
     private static final List<String> DOMAINS_LIST = Arrays.asList(new String[] {
             DEFAULT_DOMAIN, "kohlchan.mett.ru", "kohlchankxguym67.onion", "fastkohlp6h2seef.onion"
     });
-    private static final String DOMAINS_HINT = "kohlchan.net, kohlchan.mett.ru, kohlchankxguym67.onion, fastkohlp6h2seef.onion (1 hop)";
+    private static final String DOMAINS_HINT = "kohlchan.net, kohlchan.mett.ru, kohlchankxguym67.onion, fastkohlp6h2seef.onion";
     
     private static final String[] ATTACHMENT_FORMATS = new String[] {
             "jpg", "jpeg", "bmp", "gif", "png", "mp3", "ogg", "flac", "opus", "webm", "mp4", "7z", "zip", "pdf", "epub", "txt" };
@@ -203,9 +211,87 @@ public class KohlchanModule extends AbstractLynxChanModule {
         BoardModel model = super.getBoard(shortName, listener, task);
         model.defaultUserName = "Bernd";
         model.attachmentsMaxCount = 4;
-        model.allowNames = false;
         model.allowEmails = false;
         model.attachmentsFormatFilters = ATTACHMENT_FORMATS;
         return model;
+    }
+
+    private String checkFileIdentifier(File file, String mime, ProgressListener listener, CancellableTask task) {
+        if (mime == null) return null;
+        String hash;
+        try {
+            hash = AbstractLynxChanModule.computeFileMD5(file);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        String identifier = hash + "-" + mime.replace("/", "");
+        String url = getUsingUrl() + "checkFileIdentifier.js?json=1&identifier=" + identifier;
+        String response = "";
+        try {
+            response = HttpStreamer.getInstance().getStringFromUrl(url, null, httpClient, listener, task, false);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        if (response.contains("true")) return hash;
+        return null;
+    }
+
+    public String sendPost(SendPostModel model, ProgressListener listener, CancellableTask task) throws Exception {
+        String url = getUsingUrl() + (model.threadNumber == null ? "newThread.js?json=1" : "replyThread.js?json=1");
+
+        ExtendedMultipartBuilder postEntityBuilder = ExtendedMultipartBuilder.create().
+                setDelegates(listener, task).
+                setCharset(Charset.forName("UTF-8")).
+                addString("name", model.name).
+                addString("subject", model.subject).
+                addString("message", model.comment).
+                addString("password", model.password).
+                addString("boardUri", model.boardName);
+        if (model.sage) postEntityBuilder.addString("sage", "true");
+        if (model.threadNumber != null) postEntityBuilder.addString("threadId", model.threadNumber);
+        if (model.custommark) postEntityBuilder.addString("spoiler", "true");
+        if (model.attachments != null && model.attachments.length > 0) {
+            MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+            for (int i = 0; i < model.attachments.length; ++i) {
+                String ext = MimeTypeMap.getFileExtensionFromUrl(
+                        Uri.fromFile(model.attachments[i]).getEncodedPath());
+                String mime = mimeTypeMap.getMimeTypeFromExtension(ext);
+                if (mime == null) throw new Exception("Unknown file type");
+                String md5 = checkFileIdentifier(model.attachments[i], mime, listener, task);
+                
+                postEntityBuilder.addString("fileName", model.attachments[i].getName());
+                if (md5 != null) {
+                    postEntityBuilder.addString("fileMd5", md5).addString("fileMime", mime);
+                } else {
+                    postEntityBuilder.addFile("files", model.attachments[i], mime, model.randomHash);
+                }
+            }
+        }
+        HttpRequestModel request = HttpRequestModel.builder().setPOST(postEntityBuilder.build()).setNoRedirect(true).build();
+        String response = HttpStreamer.getInstance().getStringFromUrl(url, request, httpClient, null, task, true);
+        //lastCaptchaId = null;
+        JSONObject result = new JSONObject(response);
+        String status = result.optString("status");
+        if ("ok".equals(status)) {
+            UrlPageModel urlPageModel = new UrlPageModel();
+            urlPageModel.type = UrlPageModel.TYPE_THREADPAGE;
+            urlPageModel.chanName = getChanName();
+            urlPageModel.boardName = model.boardName;
+            urlPageModel.threadNumber = model.threadNumber;
+            if (model.threadNumber == null) {
+                urlPageModel.threadNumber = Integer.toString(result.optInt("data"));
+            } else {
+                urlPageModel.postNumber = Integer.toString(result.optInt("data"));
+            }
+            return buildUrl(urlPageModel);
+        } else if (status.contains("error") || status.contains("blank")) {
+            String errorMessage = result.optString("data");
+            if (errorMessage.length() > 0) {
+                throw new Exception(errorMessage);
+            }
+        }
+        throw new Exception("Unknown Error");
     }
 }
