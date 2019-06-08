@@ -104,6 +104,21 @@ public class ThemeUtils {
             return null;
         }
     }
+
+    /**
+     * Получить высоту Action bar'а
+     * @param theme тема
+     * @param resources ресурсы
+     * @return высота Action bar'а
+     */
+    public static int getActionbarSize(Theme theme, Resources resources) {
+        TypedValue tv = new TypedValue();
+        if (theme.resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
+            return TypedValue.complexToDimensionPixelSize(tv.data, resources.getDisplayMetrics());
+        } else {
+            return 168;
+        }
+    }
     
     /**
      * Объект, содержащий цвета, нужные при программной обработке (парсинг html, создание заголовков постов)

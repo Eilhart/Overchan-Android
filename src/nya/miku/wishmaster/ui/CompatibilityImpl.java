@@ -106,6 +106,12 @@ public class CompatibilityImpl {
         ActionBar actionBar = activity.getActionBar();
         if (actionBar == null || !actionBar.isShowing()) return false;
         actionBar.hide();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            View view = activity.findViewById(android.R.id.list);
+            if (view != null) {
+                view.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
+            }
+        }
         return true;
     }
     
@@ -114,6 +120,12 @@ public class CompatibilityImpl {
         ActionBar actionBar = activity.getActionBar();
         if (actionBar == null || actionBar.isShowing()) return false;
         actionBar.show();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            View view = activity.findViewById(android.R.id.list);
+            if (view != null) {
+                view.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+            }
+        }
         return true;
     }
     
