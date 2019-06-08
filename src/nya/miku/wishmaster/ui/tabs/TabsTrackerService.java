@@ -451,6 +451,7 @@ public class TabsTrackerService extends Service {
         Logger.d(TAG, "TabsTrackerService destroying");
         if (task != null) task.cancel();
         running = false;
+        currentUpdatingTabId = -1;
         unregisterReceiver(broadcastReceiver);
     }
     
