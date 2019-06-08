@@ -10,6 +10,7 @@ package nya.miku.wishmaster.lib;
 
 import java.io.File;
 
+import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
@@ -19,6 +20,8 @@ import android.os.Environment;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
+import android.support.v4.content.FileProvider;
+import nya.miku.wishmaster.BuildConfig;
 import nya.miku.wishmaster.ui.CompatibilityImpl;
 
 public class UriFileUtils {
@@ -117,6 +120,10 @@ public class UriFileUtils {
         return null;
     }
     
+    public static Uri getContentUri(Activity activity, File file) {
+        return FileProvider.getUriForFile(activity, BuildConfig.APPLICATION_ID + ".provider", file);
+    }
+
     private static boolean isKitKatDocument(Context context, Uri uri) {
         if (Build.VERSION.SDK_INT < 19) {
             return false;
