@@ -830,16 +830,10 @@ public class SwipeRefreshLayout extends ViewGroup {
                 final int pointerIndex = MotionEventCompat.findPointerIndex(ev, mActivePointerId);
                 final float y; try { y = MotionEventCompat.getY(ev, pointerIndex); } catch (Exception e) { return false; }
                 final float overscrollTop = Math.abs(y - mInitialMotionY) * DRAG_RATE; //изменено
-                if (y - mInitialMotionY < 0 && canChildScrollDown()) {
-                    return false;
-                }
-                if (y - mInitialMotionY > 0 && canChildScrollUp()) {
-                    return false;
-                }   /////
                 mIsBeingDragged = false;
-                if (overscrollTop > mTotalDragDistance) {
-                    setRefreshing(true, true /* notify */);
-                } else {
+                if ((y - mInitialMotionY < 0 && canChildScrollDown()) ||
+                    (y - mInitialMotionY > 0 && canChildScrollUp()) ||
+                    (overscrollTop <= mTotalDragDistance)) {
                     // cancel refresh
                     mRefreshing = false;
                     mProgress.setStartEndTrim(0f, 0f);
@@ -866,6 +860,8 @@ public class SwipeRefreshLayout extends ViewGroup {
                     }
                     animateOffsetToStartPosition(mCurrentTargetOffsetTop, listener);
                     mProgress.showArrow(false);
+                } else {
+                    setRefreshing(true, true /* notify */);
                 }
                 mActivePointerId = INVALID_POINTER;
                 return false;
