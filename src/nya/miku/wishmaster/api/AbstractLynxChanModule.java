@@ -85,6 +85,7 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
     }
 
     private static final Pattern RED_TEXT_MARK_PATTERN = Pattern.compile("<span class=\"redText\">(.*?)</span>");
+    private static final Pattern ORANGE_TEXT_MARK_PATTERN = Pattern.compile("<span class=\"orangeText\">(.*?)</span>");
     private static final Pattern GREEN_TEXT_MARK_PATTERN = Pattern.compile("<span class=\"greenText\">(.*?)</span>");
     private static final Pattern REPLY_NUMBER_PATTERN = Pattern.compile("&gt&gt(\\d+)");
     protected Map<String, BoardModel> boardsMap = null;
@@ -134,7 +135,9 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         model.lastPage = boardJson.optInt("pageCount", BoardModel.LAST_PAGE_UNDEFINED);
         JSONArray settingsJson = boardJson.optJSONArray("settings");
         ArrayList<String> settings = new ArrayList<String>();
-        for(int i = 0, len = settingsJson.length(); i < len; ++i) settings.add(settingsJson.getString(i));
+        if (settingsJson != null) {
+            for(int i = 0, len = settingsJson.length(); i < len; ++i) settings.add(settingsJson.getString(i));
+        }
         model.allowNames = !settings.contains("forceAnonymity");
         model.allowDeletePosts = !settings.contains("blockDeletion");
         model.allowDeleteFiles = model.allowDeletePosts;
@@ -304,11 +307,12 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         model.subject = StringEscapeUtils.unescapeHtml4(object.optString("subject"));
         model.comment = object.optString("markdown", object.optString("message"));
         model.comment = RegexUtils.replaceAll(model.comment, RED_TEXT_MARK_PATTERN, "<font color=\"red\"><b>$1</b></font>");
+        model.comment = RegexUtils.replaceAll(model.comment, ORANGE_TEXT_MARK_PATTERN, "<font color=\"#FFA500\">$1</font>");
         model.comment = RegexUtils.replaceAll(model.comment, GREEN_TEXT_MARK_PATTERN, "<span class=\"quote\">$1</span>");
         model.comment = RegexUtils.replaceAll(model.comment, REPLY_NUMBER_PATTERN, "&gt;&gt;$1");
         String banMessage = object.optString("banMessage", "");
         if (!banMessage.equals(""))
-            model.comment = model.comment + "<br/><em><font color=\"red\">("+banMessage+")</font></em>";
+            model.comment = model.comment + "<br/><em><font color=\"red\">"+banMessage+"</font></em>";
         String flag = object.optString("flag", "");
         if (!flag.equals("")) {
             BadgeIconModel icon = new BadgeIconModel();
@@ -342,7 +346,7 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
 
     private AttachmentModel mapAttachment(JSONObject object) {
         AttachmentModel model = new AttachmentModel();
-        model.originalName = object.optString("originalName");
+        model.originalName = StringEscapeUtils.unescapeHtml4(object.optString("originalName"));
         model.thumbnail = object.optString("thumb");
         model.path = object.optString("path");
         model.height = object.optInt("height", -1);
