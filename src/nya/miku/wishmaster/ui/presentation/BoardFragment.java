@@ -2530,7 +2530,7 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
         } else if (updatingNow) {
             Logger.d(TAG, "already updating now");
         } else {
-            update(true, true, true);
+            update(true, false, true);
         }
     }
     
