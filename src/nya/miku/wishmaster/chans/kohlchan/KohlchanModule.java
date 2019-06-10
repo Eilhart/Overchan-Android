@@ -43,6 +43,7 @@ import nya.miku.wishmaster.api.AbstractLynxChanModule;
 import nya.miku.wishmaster.api.interfaces.CancellableTask;
 import nya.miku.wishmaster.api.interfaces.ProgressListener;
 import nya.miku.wishmaster.api.models.BoardModel;
+import nya.miku.wishmaster.api.models.CaptchaModel;
 import nya.miku.wishmaster.api.models.SendPostModel;
 import nya.miku.wishmaster.api.models.SimpleBoardModel;
 import nya.miku.wishmaster.api.models.UrlPageModel;
@@ -62,9 +63,10 @@ public class KohlchanModule extends AbstractLynxChanModule {
     private static final String DISPLAYING_NAME = "Kohlchan";
     private static final String DEFAULT_DOMAIN = "kohlchan.net";
     private static final String PREF_KEY_DOMAIN = "domain";
-    private static final List<String> DOMAINS_LIST = Arrays.asList(new String[] {
-            DEFAULT_DOMAIN, "kohlchan.mett.ru", "kohlchankxguym67.onion", "fastkohlp6h2seef.onion"
-    });
+    private static final List<String> DOMAINS_LIST = Arrays.asList(
+            DEFAULT_DOMAIN, "kohlchan.mett.ru", "kohlchankxguym67.onion", "fastkohlp6h2seef.onion",
+            "kohlchan7cwtdwfuicqhxgqx4k47bsvlt2wn5eduzovntrzvonv4cqyd.onion",
+            "fastkohlt5rxcxtl5no7k3efmahlt7mafry7be6yvxdovekhq2hdnwqd.onion");
     private static final String DOMAINS_HINT = "kohlchan.net, kohlchan.mett.ru, kohlchankxguym67.onion, fastkohlp6h2seef.onion";
     
     private static final String[] ATTACHMENT_FORMATS = new String[] {
@@ -216,6 +218,11 @@ public class KohlchanModule extends AbstractLynxChanModule {
         return model;
     }
 
+    @Override
+    public CaptchaModel getNewCaptcha(String boardName, String threadNumber, ProgressListener listener, CancellableTask task) throws Exception {
+        return null; //Temporary fix
+    }
+
     private String checkFileIdentifier(File file, String mime, ProgressListener listener, CancellableTask task) {
         if (mime == null) return null;
         String hash;
@@ -260,7 +267,6 @@ public class KohlchanModule extends AbstractLynxChanModule {
                 String mime = mimeTypeMap.getMimeTypeFromExtension(ext);
                 if (mime == null) throw new Exception("Unknown file type");
                 String md5 = checkFileIdentifier(model.attachments[i], mime, listener, task);
-                
                 postEntityBuilder.addString("fileName", model.attachments[i].getName());
                 if (md5 != null) {
                     postEntityBuilder.addString("fileMd5", md5).addString("fileMime", mime);
@@ -271,7 +277,6 @@ public class KohlchanModule extends AbstractLynxChanModule {
         }
         HttpRequestModel request = HttpRequestModel.builder().setPOST(postEntityBuilder.build()).setNoRedirect(true).build();
         String response = HttpStreamer.getInstance().getStringFromUrl(url, request, httpClient, null, task, true);
-        //lastCaptchaId = null;
         JSONObject result = new JSONObject(response);
         String status = result.optString("status");
         if ("ok".equals(status)) {
@@ -291,6 +296,16 @@ public class KohlchanModule extends AbstractLynxChanModule {
             if (errorMessage.length() > 0) {
                 throw new Exception(errorMessage);
             }
+        } else if ("bypassable".equals(status)) {
+            //TODO: throw captcha exception
+            throw new Exception("Please enter CAPTCHA to bypass."
+            + "\nOpen this page in external browser");
+        } else if("banned".equals(status)) {
+            String banMessage = "You have been banned!";
+            try {
+                banMessage += "\nReason: " + result.getJSONObject("data").getString("reason");
+            } catch (Exception e) { }
+            throw new Exception(banMessage);
         }
         throw new Exception("Unknown Error");
     }
