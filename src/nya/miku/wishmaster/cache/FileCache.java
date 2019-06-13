@@ -67,6 +67,8 @@ public class FileCache {
     
     private final File filesDirectory;
     
+    private final File attachmentsDirectory;
+
     private final File directory;
     private long maxSize;
     private long maxPagesSize;
@@ -84,6 +86,7 @@ public class FileCache {
      */
     public FileCache(Context context, final long maxSize) {
         this.filesDirectory = getAvailableFilesDir(context);
+        this.attachmentsDirectory = new File(this.filesDirectory + "/attachments/");
         this.directory = getAvailableCacheDir(context);
         this.database = new FileCacheDB(context);
         transferTabsState(); //legacy
@@ -166,6 +169,11 @@ public class FileCache {
         for (File f : filesOfDir(directory)) {
             if (!isUndeletable(f)) f.delete();
         }
+        if (attachmentsDirectory.exists() && attachmentsDirectory.isDirectory()) {
+            for (File f : filesOfDir(attachmentsDirectory)) {
+                f.delete();
+            }
+        }
         resetCache();
     }
     
@@ -177,6 +185,14 @@ public class FileCache {
         return filesDirectory;
     }
     
+    /**
+     * Получить директорию для временного хранения файлов вложений.
+     * Данная директория не очищается вместе с кэшем, её размер не контролируется.
+     */
+    public File getAttachmentsDirectory() {
+        return attachmentsDirectory;
+    }
+
     /**
      * Получить файл из кэша
      * @param fileName имя файла

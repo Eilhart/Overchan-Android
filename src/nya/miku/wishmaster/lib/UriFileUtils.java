@@ -9,6 +9,8 @@
 package nya.miku.wishmaster.lib;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 
 import android.app.Activity;
 import android.content.ContentUris;
@@ -18,12 +20,17 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.BaseColumns;
+import android.provider.OpenableColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.support.v4.content.FileProvider;
+import nya.miku.wishmaster.common.IOUtils;
+import nya.miku.wishmaster.common.Logger;
 import nya.miku.wishmaster.ui.CompatibilityImpl;
 
 public class UriFileUtils {
+    private static final String TAG = "UriFileUtils";
+
     /**
      * Get a file path from a Uri. This will get the the path for Storage Access
      * Framework Documents, as well as the _data field for the MediaStore and
@@ -151,7 +158,38 @@ public class UriFileUtils {
                 final int column_index = cursor.getColumnIndexOrThrow(column);
                 return cursor.getString(column_index);
             }
+        } catch (Exception e) {
+            Logger.e(TAG, e);
         } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
+    public static File getFileCopy(Context context, Uri uri, File directory) {
+        Cursor cursor = null;
+        InputStream from = null;
+        FileOutputStream to = null;
+        try {
+            cursor = context.getContentResolver().query(uri, null, null, null, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                String name = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                if (!directory.exists()) {
+                    directory.mkdirs();
+                }
+                File file = new File(directory + "/" + name);
+                from = context.getContentResolver().openInputStream(uri);
+                to = new FileOutputStream(file, false);
+                IOUtils.copyStream(from, to);
+                return file;
+            }
+        } catch (Exception e) {
+            Logger.e(TAG, e);
+        } finally {
+            IOUtils.closeQuietly(from);
+            IOUtils.closeQuietly(to);
             if (cursor != null) {
                 cursor.close();
             }
