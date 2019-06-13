@@ -36,8 +36,11 @@ import android.database.sqlite.SQLiteStatement;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.BaseColumns;
+import nya.miku.wishmaster.api.models.SendPostModel;
+import nya.miku.wishmaster.cache.DraftsCache;
 import nya.miku.wishmaster.common.IOUtils;
 import nya.miku.wishmaster.common.Logger;
+import nya.miku.wishmaster.common.MainApplication;
 import nya.miku.wishmaster.ui.CompatibilityImpl;
 
 /**
@@ -322,6 +325,16 @@ public class FileCache {
                     break;
                 } else {
                     Logger.d(TAG, "Deleting " + oldest.getPath());
+                    if (isDraftFile(oldest)) {
+                        DraftsCache draftsCache = MainApplication.getInstance().draftsCache;
+                        SendPostModel draft = draftsCache.get(oldest.getName().substring(PREFIX_DRAFTS.length()));
+                        String directory = attachmentsDirectory.toString();
+                        for (File attachment : draft.attachments) {
+                            if (attachment.toString().startsWith(directory) && attachment.exists()) {
+                                attachment.delete();
+                            }
+                        }
+                    }
                     if (!delete(oldest)) {
                         Logger.e(TAG, "Cannot delete cache file: " + oldest.getPath());
                         break;
@@ -356,6 +369,14 @@ public class FileCache {
         return filename.startsWith(PREFIX_PAGES) || filename.startsWith(PREFIX_DRAFTS);
     }
     
+    private static boolean isDraftFile(File file) {
+        return isDraftFile(file.getName());
+    }
+
+    private static boolean isDraftFile(String filename) {
+        return filename.startsWith(PREFIX_DRAFTS);
+    }
+
     private File[] filesOfDir(File directory) {
         File[] files = directory.listFiles();
         if (files == null) return new File[0];
