@@ -214,6 +214,7 @@ public class KohlchanModule extends AbstractLynxChanModule {
         model.defaultUserName = "Bernd";
         model.attachmentsMaxCount = 4;
         model.allowEmails = false;
+        model.allowRandomHash = true;
         model.attachmentsFormatFilters = ATTACHMENT_FORMATS;
         return model;
     }
@@ -266,7 +267,10 @@ public class KohlchanModule extends AbstractLynxChanModule {
                         Uri.fromFile(model.attachments[i]).getEncodedPath());
                 String mime = mimeTypeMap.getMimeTypeFromExtension(ext);
                 if (mime == null) throw new Exception("Unknown file type");
-                String md5 = checkFileIdentifier(model.attachments[i], mime, listener, task);
+                String md5 = null;
+                if (!model.randomHash) {
+                    md5 = checkFileIdentifier(model.attachments[i], mime, listener, task);
+                }
                 postEntityBuilder.addString("fileName", model.attachments[i].getName());
                 if (md5 != null) {
                     postEntityBuilder.addString("fileMd5", md5).addString("fileMime", mime);
