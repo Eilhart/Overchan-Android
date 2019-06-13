@@ -97,7 +97,7 @@ public class UrlHandler {
         for (int i=0; i<tabsAdapter.getCount(); ++i) {
             if (tabsAdapter.getItem(i).hash != null && tabsAdapter.getItem(i).hash.equals(model.hash)) {
                 tabsAdapter.getItem(i).startItemNumber = model.startItemNumber;
-                tabsAdapter.getItem(i).startItemTop = 0;
+                tabsAdapter.getItem(i).startItemTop = TabModel.DEFAULT_TOP;
                 tabsAdapter.getItem(i).forceUpdate = true;
                 if (switchAfter) tabsAdapter.setSelectedItem(i);
                 return;

@@ -190,7 +190,7 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
     private TabModel tabModel;
     private String startItem;
     private int startItemPosition = -1;
-    private int startItemTop;
+    private int startItemTop = TabModel.DEFAULT_TOP;
     private int firstUnreadPosition = 0;
     private boolean forceUpdateFirstTime;
     
@@ -361,6 +361,7 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
         searchBarView = rootView.findViewById(R.id.board_search_bar);
         pullableLayout = (SwipeRefreshLayout)rootView.findViewById(R.id.board_pullable_layout);
         listView = (ListView)rootView.findViewById(android.R.id.list);
+        pullableLayout.setProgressViewOffset(false, 0, 64 + listView.getPaddingTop());
         if (pageType != TYPE_POSTSLIST) listView.setOnItemClickListener(this);
         registerForContextMenu(listView);
         
@@ -1309,7 +1310,7 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
                                         ClickableToast.showText(activity, notification, new ClickableToast.OnClickListener() {
                                             @Override
                                             public void onClick() {
-                                                listView.setSelection(itemsCountBefore);
+                                                hackListViewSetPosition(listView, itemsCountBefore, TabModel.DEFAULT_TOP);
                                             }
                                         });
                                     } else {
@@ -1491,18 +1492,21 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
                                     currentTopDelta = 0;
                                 }
                                 
-                                boolean top = firstVisibleItem == 0 && firstVisibleTop == 0;
+                                boolean top = firstVisibleItem == 0 && firstVisibleTop >= 0;
                                 long currentTime = System.currentTimeMillis();
                                 if (top || currentTime - lastActionTime > 1000) {
-                                    if (currentTopDelta < -maxTopDelta) {
-                                        if (CompatibilityImpl.hideActionBar(activity)) {
-                                            lastActionTime = currentTime;
-                                            currentTopDelta = 0;
-                                        }
-                                    } else if (top || currentTopDelta > maxTopDelta) {
+                                    if (top || currentTopDelta > maxTopDelta) {
                                         if (CompatibilityImpl.showActionBar(activity)) {
                                             lastActionTime = currentTime;
                                             currentTopDelta = 0;
+                                        }
+                                    } else if (currentTopDelta < -maxTopDelta) {
+                                        View searchBar = activity.findViewById(R.id.board_search_bar);
+                                        if (searchBar == null || !searchBar.isShown()) {
+                                            if (CompatibilityImpl.hideActionBar(activity)) {
+                                                lastActionTime = currentTime;
+                                                currentTopDelta = 0;
+                                            }
                                         }
                                     }
                                 }
@@ -1557,24 +1561,16 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
         
     }
     
-    private static void hackListViewSetPosition(final ListView listView, final int position, final int top) {
+    private void hackListViewSetPosition(final ListView listView, final int position, final int top) {
         try {
-            listView.setSelectionFromTop(position, top);
-            AppearanceUtils.callWhenLoaded(listView, new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        int setPosition = listView.getFirstVisiblePosition();
-                        int setTop = listView.getChildAt(0).getTop();
-                        int incTop = listView.getChildCount() < 2 ? 0 : Math.max(0, -listView.getChildAt(1).getTop());
-                        if (setPosition != position || setTop != top || incTop > 0) {
-                            listView.setSelectionFromTop(position, top + incTop);
-                        }
-                    } catch(Exception e) {
-                        Logger.e(TAG, e);
-                    }
-                }
-            });
+            int adjTop = (top != TabModel.DEFAULT_TOP) ? top :
+                ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) &&
+                 (activity.getActionBar().isShowing() ||
+                  (listView.getHeight() <= 0))) ? listView.getPaddingTop() : 0;
+            if (listView.getHeight() > 0) {
+                adjTop -= listView.getPaddingTop();
+            }
+            listView.setSelectionFromTop(position, adjTop);
         } catch(Exception e) {
             Logger.e(TAG, e);
         }
@@ -2530,7 +2526,7 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
         } else if (updatingNow) {
             Logger.d(TAG, "already updating now");
         } else {
-            update(true, true, true);
+            update(true, false, true);
         }
     }
     
@@ -2614,7 +2610,7 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
             int step = (int) (50 * resources.getDisplayMetrics().density + 0.5f);
             View v = listView.getChildAt(0);
             int position = listView.getPositionForView(v);
-            int top = v.getTop();
+            int top = v.getTop() - listView.getPaddingTop();
             listView.setSelectionFromTop(position, top + step * (up ? 1 : -1));
         }
     }
@@ -2746,10 +2742,14 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
                     boolean atEnd = listView.getChildAt(listView.getChildCount() - 1).getTop() +
                             listView.getChildAt(listView.getChildCount() - 1).getHeight() == listView.getHeight();
                     
-                    View topView = listView.getChildAt(0);
-                    if ((v == null || v.getId() == R.id.board_search_previous) &&
-                            topView.getTop() < 0 && listView.getChildCount() > 1) topView = listView.getChildAt(1);
-                    int currentListPosition = listView.getPositionForView(topView);
+                    View view;
+                    for (int i = 0; (view = listView.getChildAt(i)) != null; ++i) {
+                        if (view.getBottom() > ((Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) ? 0 :
+                            resources.getDimensionPixelSize(R.dimen.panel_height) + listView.getPaddingTop())) {
+                            break;
+                        }
+                    }
+                    int currentListPosition = listView.getPositionForView((view != null) ? view : listView.getChildAt(0));
                     
                     int newResultIndex = Collections.binarySearch(cachedSearchResults, currentListPosition);
                     if (newResultIndex >= 0) {
@@ -2767,7 +2767,9 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
                     if (v != null && v.getId() == R.id.board_search_next && lastFound == newResultIndex && atEnd) newResultIndex = 0;
                     lastFound = newResultIndex;
                     
-                    listView.setSelection(cachedSearchResults.get(newResultIndex));
+                    listView.setSelectionFromTop(cachedSearchResults.get(newResultIndex),
+                            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) ?
+                                resources.getDimensionPixelSize(R.dimen.panel_height) : 0);
                     results.setText((newResultIndex + 1) + "/" + cachedSearchResults.size());
                 }
             }
