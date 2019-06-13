@@ -3773,6 +3773,12 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
             return;
         }
         if (presentationModel == null || presentationModel.source == null || presentationModel.source.boardModel == null) return;
+        try {
+            InputMethodManager imm = (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(searchBarView.findViewById(R.id.board_search_field).getWindowToken(), 0);
+        } catch (Exception e) {
+            Logger.e(TAG, e);
+        }
         Intent galleryIntent = new Intent(activity.getApplicationContext(), GalleryActivity.class);
         galleryIntent.putExtra(GalleryActivity.EXTRA_SETTINGS, GallerySettings.fromSettings(settings));
         galleryIntent.putExtra(GalleryActivity.EXTRA_ATTACHMENT, attachment);

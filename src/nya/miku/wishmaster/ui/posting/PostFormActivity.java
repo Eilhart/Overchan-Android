@@ -294,10 +294,10 @@ public class PostFormActivity extends Activity implements View.OnClickListener {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
+            File file = null;
             switch (requestCode) {
                 case REQUEST_CODE_ATTACH_FILE:
                     String path = data.getStringExtra(FileDialogActivity.RESULT_PATH);
-                    File file = null;
                     if (path != null) {
                         file = new File(path);
                         currentPath = file.getParent();
@@ -306,7 +306,12 @@ public class PostFormActivity extends Activity implements View.OnClickListener {
                     break;
                 case REQUEST_CODE_ATTACH_GALLERY:
                     Uri imageUri = data.getData();
-                    handleFile(UriFileUtils.getFile(this, imageUri));
+                    file = UriFileUtils.getFile(this, imageUri);
+                    if (file == null) {
+                        File directory = MainApplication.getInstance().fileCache.getAttachmentsDirectory();
+                        file = UriFileUtils.getFileCopy(this, imageUri, directory);
+                    }
+                    handleFile(file);
                     break;
             }
             saveSendPostModel();
@@ -359,6 +364,11 @@ public class PostFormActivity extends Activity implements View.OnClickListener {
             @Override
             public void onClick(View v) {
                 int position = attachmentsLayout.indexOfChild((View)v.getTag());
+                String directory = MainApplication.getInstance().fileCache.getAttachmentsDirectory().toString();
+                File attachment = attachments.get(position);
+                if (attachment.toString().startsWith(directory)) {
+                    attachment.delete();
+                }
                 attachments.remove(position);
                 attachmentsLayout.removeViewAt(position);
             }

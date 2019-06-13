@@ -156,6 +156,10 @@ public class ShareActivity extends ListActivity {
             Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
             if (uri != null) {
                 File file = UriFileUtils.getFile(this, uri);
+                if (file == null) {
+                    File directory = MainApplication.getInstance().fileCache.getAttachmentsDirectory();
+                    file = UriFileUtils.getFileCopy(this, uri, directory);
+                }
                 if (file != null) {
                     selectedFile = file;
                 }

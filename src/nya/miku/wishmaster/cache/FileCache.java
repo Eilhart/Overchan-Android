@@ -36,8 +36,11 @@ import android.database.sqlite.SQLiteStatement;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.BaseColumns;
+import nya.miku.wishmaster.api.models.SendPostModel;
+import nya.miku.wishmaster.cache.DraftsCache;
 import nya.miku.wishmaster.common.IOUtils;
 import nya.miku.wishmaster.common.Logger;
+import nya.miku.wishmaster.common.MainApplication;
 import nya.miku.wishmaster.ui.CompatibilityImpl;
 
 /**
@@ -67,6 +70,8 @@ public class FileCache {
     
     private final File filesDirectory;
     
+    private final File attachmentsDirectory;
+
     private final File directory;
     private long maxSize;
     private long maxPagesSize;
@@ -84,6 +89,7 @@ public class FileCache {
      */
     public FileCache(Context context, final long maxSize) {
         this.filesDirectory = getAvailableFilesDir(context);
+        this.attachmentsDirectory = new File(this.filesDirectory + "/attachments/");
         this.directory = getAvailableCacheDir(context);
         this.database = new FileCacheDB(context);
         transferTabsState(); //legacy
@@ -166,6 +172,11 @@ public class FileCache {
         for (File f : filesOfDir(directory)) {
             if (!isUndeletable(f)) f.delete();
         }
+        if (attachmentsDirectory.exists() && attachmentsDirectory.isDirectory()) {
+            for (File f : filesOfDir(attachmentsDirectory)) {
+                f.delete();
+            }
+        }
         resetCache();
     }
     
@@ -177,6 +188,14 @@ public class FileCache {
         return filesDirectory;
     }
     
+    /**
+     * Получить директорию для временного хранения файлов вложений.
+     * Данная директория не очищается вместе с кэшем, её размер не контролируется.
+     */
+    public File getAttachmentsDirectory() {
+        return attachmentsDirectory;
+    }
+
     /**
      * Получить файл из кэша
      * @param fileName имя файла
@@ -306,6 +325,16 @@ public class FileCache {
                     break;
                 } else {
                     Logger.d(TAG, "Deleting " + oldest.getPath());
+                    if (isDraftFile(oldest)) {
+                        DraftsCache draftsCache = MainApplication.getInstance().draftsCache;
+                        SendPostModel draft = draftsCache.get(oldest.getName().substring(PREFIX_DRAFTS.length()));
+                        String directory = attachmentsDirectory.toString();
+                        for (File attachment : draft.attachments) {
+                            if (attachment.toString().startsWith(directory) && attachment.exists()) {
+                                attachment.delete();
+                            }
+                        }
+                    }
                     if (!delete(oldest)) {
                         Logger.e(TAG, "Cannot delete cache file: " + oldest.getPath());
                         break;
@@ -340,6 +369,14 @@ public class FileCache {
         return filename.startsWith(PREFIX_PAGES) || filename.startsWith(PREFIX_DRAFTS);
     }
     
+    private static boolean isDraftFile(File file) {
+        return isDraftFile(file.getName());
+    }
+
+    private static boolean isDraftFile(String filename) {
+        return filename.startsWith(PREFIX_DRAFTS);
+    }
+
     private File[] filesOfDir(File directory) {
         File[] files = directory.listFiles();
         if (files == null) return new File[0];

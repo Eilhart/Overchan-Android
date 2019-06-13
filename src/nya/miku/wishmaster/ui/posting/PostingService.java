@@ -30,6 +30,7 @@ import nya.miku.wishmaster.common.MainApplication;
 import nya.miku.wishmaster.http.interactive.InteractiveException;
 import nya.miku.wishmaster.ui.MainActivity;
 
+import java.io.File;
 import java.lang.ref.WeakReference;
 
 import android.annotation.SuppressLint;
@@ -260,6 +261,12 @@ public class PostingService extends Service {
             }
             
             if (success && !isCancelled()) {
+                String directory = MainApplication.getInstance().fileCache.getAttachmentsDirectory().toString();
+                for (File attachment : sendPostModel.attachments) {
+                    if (attachment.toString().startsWith(directory)) {
+                        attachment.delete();
+                    }
+                }
                 MainApplication.getInstance().draftsCache.remove(hash);
                 Intent intentSuccess = new Intent(PostingService.this, MainActivity.class);
                 if (targetUrl == null) {
