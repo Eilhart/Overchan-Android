@@ -225,7 +225,7 @@ public class HttpStreamer {
             for (Header h : responseModel.headers) {
                 if (!h.getName().toLowerCase().equals("set-cookie"))
                     continue;
-                Matcher matcher = Pattern.compile("([^= ]+)=\"?([^;]*)\"?[;$]").matcher(h.getValue());
+                Matcher matcher = Pattern.compile("([^= ]+)=\"?([^;]*)\"?;?").matcher(h.getValue());
                 if (!matcher.find())
                     continue;
                 URI parsedUri = new URI(url);
