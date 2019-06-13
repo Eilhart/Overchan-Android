@@ -2803,8 +2803,8 @@ public class BoardFragment extends Fragment implements AdapterView.OnItemClickLi
                             cachedSearchRequest = request;
                             cachedSearchResults = new ArrayList<Integer>();
                             cachedSearchHighlightedSpanables = new SparseArray<Spanned>();
-                            List<PresentationItemModel> safePresentationList = presentationModel.getSafePresentationList();
-                            if (safePresentationList != null) {
+                            List<PresentationItemModel> safePresentationList;
+                            if (request != null && request.length() != 0 && (safePresentationList = presentationModel.getSafePresentationList()) != null) {
                                 for (int i=0; i<safePresentationList.size(); ++i) {
                                     PresentationItemModel model = safePresentationList.get(i);
                                     if (model.hidden && !staticSettings.showHiddenItems) continue;
