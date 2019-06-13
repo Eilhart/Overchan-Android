@@ -23,9 +23,11 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,7 +46,6 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
@@ -60,7 +61,6 @@ import nya.miku.wishmaster.api.CloudflareChanModule;
 import nya.miku.wishmaster.api.interfaces.CancellableTask;
 import nya.miku.wishmaster.api.interfaces.ProgressListener;
 import nya.miku.wishmaster.api.models.BoardModel;
-import nya.miku.wishmaster.api.models.CaptchaModel;
 import nya.miku.wishmaster.api.models.DeletePostModel;
 import nya.miku.wishmaster.api.models.PostModel;
 import nya.miku.wishmaster.api.models.SendPostModel;
@@ -95,6 +95,7 @@ public class FourchanModule extends CloudflareChanModule {
     private boolean usingPasscode = false;
     
     private Map<String, BoardModel> boardsMap = null;
+    private String[] iconIds = null;
     
     private Recaptcha reportRecaptcha = null;
     private String reportCaptchaAnswer = null;
@@ -335,8 +336,32 @@ public class FourchanModule extends CloudflareChanModule {
         if (boardsJson == null) return oldBoardsList;
         JSONArray boards = boardsJson.getJSONArray("boards");
         
+        String[] icons = null;
+        try {
+            JSONObject flagsJson = boardsJson.getJSONObject("troll_flags");
+            if (flagsJson.length() > 0) {
+                Map<String, String> flagsMap = new TreeMap<>();
+                flagsMap.put("0", "Geographic Location");
+                Iterator<String> it = flagsJson.keys();
+                while (it.hasNext()) {
+                    String key = it.next();
+                    flagsMap.put(key, flagsJson.getString(key));
+                }
+                iconIds = flagsMap.keySet().toArray(new String[flagsMap.size()]);
+                icons = flagsMap.values().toArray(new String[flagsMap.size()]);
+            }
+        } catch (Exception e) {
+            iconIds = null;    // Troll flags were disabled
+        }
+        
         for (int i=0, len=boards.length(); i<len; ++i) {
-            BoardModel model = FourchanJsonMapper.mapBoardModel(boards.getJSONObject(i));
+            JSONObject board = boards.getJSONObject(i);
+            BoardModel model = FourchanJsonMapper.mapBoardModel(board);
+            if ((icons != null) && (board.optInt("troll_flags", 0) == 1))
+            {
+                model.allowIcons = true;
+                model.iconDescriptions = icons;
+            }
             newMap.put(model.boardName, model);
             list.add(new SimpleBoardModel(model));
         }
@@ -449,6 +474,9 @@ public class FourchanModule extends CloudflareChanModule {
         }
         if (model.attachments != null && model.attachments.length != 0) postEntityBuilder.addFile("upfile", model.attachments[0]);
         if (model.custommark) postEntityBuilder.addString("spoiler", "on");
+        if (iconIds != null && model.icon > -1 && model.icon < iconIds.length) {
+            postEntityBuilder.addString("flag", iconIds[model.icon]);
+        }
         
         HttpRequestModel request = HttpRequestModel.builder().setPOST(postEntityBuilder.build()).build();
         String response;
