@@ -21,6 +21,8 @@ package nya.miku.wishmaster.chans.kohlchan;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.preference.EditTextPreference;
@@ -32,12 +34,17 @@ import android.webkit.MimeTypeMap;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
+import cz.msebera.android.httpclient.Header;
+import cz.msebera.android.httpclient.impl.cookie.BasicClientCookie;
 import nya.miku.wishmaster.R;
 import nya.miku.wishmaster.api.AbstractLynxChanModule;
 import nya.miku.wishmaster.api.interfaces.CancellableTask;
@@ -73,9 +80,16 @@ public class KohlchanModule extends AbstractLynxChanModule {
             "jpg", "jpeg", "bmp", "gif", "png", "mp3", "ogg", "flac", "opus", "webm", "mp4", "7z", "zip", "pdf", "epub", "txt" };
     
     private String domain;
+    private static HashMap<String, String> captchas = null;
 
     public KohlchanModule(SharedPreferences preferences, Resources resources) {
         super(preferences, resources);
+        if (captchas == null) captchas = new HashMap<String, String>();
+    }
+
+    public static void putCaptcha(String captchaID, String answer) {
+        if (captchas == null) captchas = new HashMap<String, String>();
+        captchas.put(captchaID, answer);
     }
     
     @Override
@@ -86,6 +100,10 @@ public class KohlchanModule extends AbstractLynxChanModule {
     @Override
     protected void initHttpClient() {
         updateDomain(preferences.getString(getSharedKey(PREF_KEY_DOMAIN), DEFAULT_DOMAIN));
+        BasicClientCookie cookieConsent = new BasicClientCookie("cookieConsent", "true");
+        cookieConsent.setDomain(getUsingDomain());
+        cookieConsent.setPath("/");
+        httpClient.getCookieStore().addCookie(cookieConsent);
     }
 
     @Override
@@ -212,7 +230,6 @@ public class KohlchanModule extends AbstractLynxChanModule {
     public BoardModel getBoard(String shortName, ProgressListener listener, CancellableTask task) throws Exception {
         BoardModel model = super.getBoard(shortName, listener, task);
         model.defaultUserName = "Bernd";
-        model.attachmentsMaxCount = 4;
         model.allowEmails = false;
         model.allowRandomHash = true;
         model.attachmentsFormatFilters = ATTACHMENT_FORMATS;
@@ -222,6 +239,84 @@ public class KohlchanModule extends AbstractLynxChanModule {
     @Override
     public CaptchaModel getNewCaptcha(String boardName, String threadNumber, ProgressListener listener, CancellableTask task) throws Exception {
         return null; //Temporary fix
+    }
+
+    public ExtendedCaptchaModel getNewCaptcha(ProgressListener listener, CancellableTask task) throws Exception {
+        String captchaUrl = getUsingUrl() + "captcha.js?d=" + Math.random();
+        return downloadCaptcha(captchaUrl, listener, task);
+    }
+
+    protected ExtendedCaptchaModel downloadCaptcha(String captchaUrl, ProgressListener listener, CancellableTask task) throws Exception {
+        Bitmap captchaBitmap = null;
+        HttpRequestModel requestModel = HttpRequestModel.builder().setGET().setNoRedirect(true).build();
+        HttpResponseModel responseModel = HttpStreamer.getInstance().getFromUrl(captchaUrl, requestModel, httpClient, listener, task);
+        String captchaId = null;
+        try {
+            for (Header header : responseModel.headers) {
+                if (header != null && "Set-Cookie".equalsIgnoreCase(header.getName())) {
+                    String cookie = header.getValue();
+                    if (cookie.contains("captchaid")) {
+                        try {
+                            captchaId = cookie.split(";")[0].split("=")[1];
+                        } catch (Exception e) {
+                        }
+                    }
+                    if (captchaId != null) break;
+                }
+            }
+            
+            if (responseModel.statusCode == 301 || responseModel.statusCode == 302) {
+                captchaUrl = fixRelativeUrl(responseModel.locationHeader);
+            }
+        } finally {
+            responseModel.release();
+        }
+        //FIXME: obtain captcha cookie and capcha image in 1 request
+        responseModel = HttpStreamer.getInstance().getFromUrl(captchaUrl, requestModel, httpClient, listener, task);
+        
+        try {
+            InputStream imageStream = responseModel.stream;
+            captchaBitmap = BitmapFactory.decodeStream(imageStream);
+        } finally {
+            responseModel.release();
+        }
+        
+        responseModel.release();
+        ExtendedCaptchaModel captchaModel = new ExtendedCaptchaModel();
+        captchaModel.type = CaptchaModel.TYPE_NORMAL;
+        captchaModel.bitmap = captchaBitmap;
+        captchaModel.captchaID = captchaId;
+        return captchaModel;
+    }
+
+    private String validateCaptcha(String captchaID, ProgressListener listener, CancellableTask task) throws Exception {
+        if (captchaID == null) return null;
+        String captchaAnswer = captchas.get(captchaID);
+        if (captchaAnswer == null) return null;
+        String url = getUsingUrl() + "renewBypass.js?json=1";// + captchaID + "&answer=" + Uri.encode(captchaAnswer);
+        ExtendedMultipartBuilder postEntityBuilder = ExtendedMultipartBuilder.create().
+                setDelegates(listener, task).
+                addString("captcha", captchaAnswer);
+        HttpRequestModel request = HttpRequestModel.builder().setPOST(postEntityBuilder.build()).build();
+        JSONObject response = null;
+        try {
+            response = HttpStreamer.getInstance().getJSONObjectFromUrl(url, request, httpClient, listener, task, true);
+        } catch (HttpWrongStatusCodeException e) {
+            checkCloudflareError(e, url);
+            throw e;
+        }
+        captchas.remove(captchaID);
+        switch (response.optString("status")) {
+            case "failed":
+            case "new":
+            case "next":
+                throw new KohlchanCaptchaException();
+            case "finish":
+                return captchaID;
+            case "error":
+                throw new Exception(response.optString("data", "Captcha Error"));
+            default: throw new Exception("Unknown Error");
+        }
     }
 
     private String checkFileIdentifier(File file, String mime, ProgressListener listener, CancellableTask task) {
@@ -247,6 +342,14 @@ public class KohlchanModule extends AbstractLynxChanModule {
     }
 
     public String sendPost(SendPostModel model, ProgressListener listener, CancellableTask task) throws Exception {
+        String captchaId;
+        try {
+            captchaId = captchas.keySet().iterator().next();
+        } catch (NoSuchElementException e) {
+            captchaId = null;
+        }
+        if (captchaId != null) validateCaptcha(captchaId, listener, task);
+        
         String url = getUsingUrl() + (model.threadNumber == null ? "newThread.js?json=1" : "replyThread.js?json=1");
 
         ExtendedMultipartBuilder postEntityBuilder = ExtendedMultipartBuilder.create().
@@ -301,9 +404,7 @@ public class KohlchanModule extends AbstractLynxChanModule {
                 throw new Exception(errorMessage);
             }
         } else if ("bypassable".equals(status)) {
-            //TODO: throw captcha exception
-            throw new Exception("Please enter CAPTCHA to bypass."
-            + "\nOpen this page in external browser");
+            throw new KohlchanCaptchaException();
         } else if("banned".equals(status)) {
             String banMessage = "You have been banned!";
             try {
@@ -313,4 +414,9 @@ public class KohlchanModule extends AbstractLynxChanModule {
         }
         throw new Exception("Unknown Error");
     }
+
+    class ExtendedCaptchaModel extends CaptchaModel {
+        public String captchaID = "";
+    }
+    
 }
