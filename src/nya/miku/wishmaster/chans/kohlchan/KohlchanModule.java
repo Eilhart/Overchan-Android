@@ -51,6 +51,7 @@ import nya.miku.wishmaster.api.interfaces.CancellableTask;
 import nya.miku.wishmaster.api.interfaces.ProgressListener;
 import nya.miku.wishmaster.api.models.BoardModel;
 import nya.miku.wishmaster.api.models.CaptchaModel;
+import nya.miku.wishmaster.api.models.DeletePostModel;
 import nya.miku.wishmaster.api.models.SendPostModel;
 import nya.miku.wishmaster.api.models.SimpleBoardModel;
 import nya.miku.wishmaster.api.models.UrlPageModel;
@@ -293,7 +294,7 @@ public class KohlchanModule extends AbstractLynxChanModule {
         if (captchaID == null) return null;
         String captchaAnswer = captchas.get(captchaID);
         if (captchaAnswer == null) return null;
-        String url = getUsingUrl() + "renewBypass.js?json=1";// + captchaID + "&answer=" + Uri.encode(captchaAnswer);
+        String url = getUsingUrl() + "renewBypass.js?json=1";
         ExtendedMultipartBuilder postEntityBuilder = ExtendedMultipartBuilder.create().
                 setDelegates(listener, task).
                 addString("captcha", captchaAnswer);
@@ -411,6 +412,48 @@ public class KohlchanModule extends AbstractLynxChanModule {
                 banMessage += "\nReason: " + result.getJSONObject("data").getString("reason");
             } catch (Exception e) { }
             throw new Exception(banMessage);
+        }
+        throw new Exception("Unknown Error");
+    }
+
+    @Override
+    public String deletePost(DeletePostModel model, final ProgressListener listener, final CancellableTask task) throws Exception {
+        String url = getUsingUrl() + "contentActions.js?json=1";
+        ExtendedMultipartBuilder multipartBuilder = ExtendedMultipartBuilder.create().
+                setDelegates(listener, task).
+                addString("action", "delete").
+                addString("password", model.password).
+                addString("deleteMedia", "true").
+                addString(model.boardName + "-" + model.threadNumber +
+                                (model.postNumber != null ? ("-" + model.postNumber) : ""), "true");
+        if (model.onlyFiles) {
+            multipartBuilder.addString("deleteUploads", "true");
+        }
+        HttpRequestModel request = HttpRequestModel.builder().setPOST(multipartBuilder.build()).setNoRedirect(true).build();
+        String response;
+        try {
+            response = HttpStreamer.getInstance().getStringFromUrl(url, request, httpClient, null, task, false);
+        } catch (HttpWrongStatusCodeException e) {
+            checkCloudflareError(e, url);
+            throw e;
+        }
+        JSONObject result = new JSONObject(response);
+        String status = result.optString("status");
+        if ("ok".equals(status)) {
+            JSONObject data = result.optJSONObject("data");
+            if (data != null) {
+                int deleteCount = data.optInt("removedPosts", -1) + data.optInt("removedPosts", -1);
+                if (deleteCount > 0) {
+                    return null;
+                } else if (deleteCount == 0) {
+                    throw new Exception("Wrong password");
+                }
+            }
+        } else if (status.contains("error")) {
+            String errorMessage = result.optString("data");
+            if (errorMessage.length() > 0) {
+                throw new Exception(errorMessage);
+            }
         }
         throw new Exception("Unknown Error");
     }
