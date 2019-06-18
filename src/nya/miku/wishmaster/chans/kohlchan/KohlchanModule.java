@@ -442,11 +442,11 @@ public class KohlchanModule extends AbstractLynxChanModule {
         if ("ok".equals(status)) {
             JSONObject data = result.optJSONObject("data");
             if (data != null) {
-                int deleteCount = data.optInt("removedPosts", -1) + data.optInt("removedPosts", -1);
-                if (deleteCount > 0) {
+                int removedCount = data.optInt("removedPosts", -2) + data.optInt("removedThreads", -2);
+                if (removedCount > 0) {
                     return null;
-                } else if (deleteCount == 0) {
-                    throw new Exception("Wrong password");
+                } else if (removedCount == 0) {
+                    throw new Exception("Nothing was removed");
                 }
             }
         } else if (status.contains("error")) {
