@@ -25,10 +25,12 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.support.v4.content.res.ResourcesCompat;
+import android.text.InputFilter;
 import android.text.InputType;
 import android.webkit.MimeTypeMap;
 
@@ -55,6 +57,7 @@ import nya.miku.wishmaster.api.models.DeletePostModel;
 import nya.miku.wishmaster.api.models.SendPostModel;
 import nya.miku.wishmaster.api.models.SimpleBoardModel;
 import nya.miku.wishmaster.api.models.UrlPageModel;
+import nya.miku.wishmaster.api.util.CryptoUtils;
 import nya.miku.wishmaster.common.IOUtils;
 import nya.miku.wishmaster.common.Logger;
 import nya.miku.wishmaster.http.ExtendedMultipartBuilder;
@@ -79,6 +82,7 @@ public class KohlchanModule extends AbstractLynxChanModule {
     
     private static final String[] ATTACHMENT_FORMATS = new String[] {
             "jpg", "jpeg", "bmp", "gif", "png", "mp3", "ogg", "flac", "opus", "webm", "mp4", "7z", "zip", "pdf", "epub", "txt" };
+    private static final int MAX_PASSWORD_LENGTH = 8;
     
     private String domain;
     private static HashMap<String, String> captchas = null;
@@ -141,6 +145,37 @@ public class KohlchanModule extends AbstractLynxChanModule {
     public void addPreferencesOnScreen(PreferenceGroup preferenceGroup) {
         addDomainPreferences(preferenceGroup);
         super.addPreferencesOnScreen(preferenceGroup);
+    }
+
+    @Override
+    public String getDefaultPassword() {
+        if (!preferences.contains(getSharedKey(PREF_KEY_PASSWORD))) {
+            preferences.edit().putString(getSharedKey(PREF_KEY_PASSWORD),
+                    CryptoUtils.genPassword(MAX_PASSWORD_LENGTH)).commit();
+        }
+        return preferences.getString(getSharedKey(PREF_KEY_PASSWORD), "");
+    }
+
+    @Override
+    protected void addPasswordPreference(PreferenceGroup group) {
+        final Context context = group.getContext();
+        EditTextPreference passwordPref = new EditTextPreference(context) {
+            @Override
+            protected void showDialog(Bundle state) {
+                if (!preferences.contains(getSharedKey(PREF_KEY_PASSWORD))) {
+                    setText(getDefaultPassword());
+                }
+                super.showDialog(state);
+            }
+        };
+        passwordPref.setTitle(R.string.pref_password_title);
+        passwordPref.setDialogTitle(R.string.pref_password_title);
+        passwordPref.setSummary(R.string.pref_password_summary);
+        passwordPref.setKey(getSharedKey(PREF_KEY_PASSWORD));
+        passwordPref.getEditText().setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        passwordPref.getEditText().setSingleLine();
+        passwordPref.getEditText().setFilters(new InputFilter[] { new InputFilter.LengthFilter(MAX_PASSWORD_LENGTH) });
+        group.addPreference(passwordPref);
     }
 
     @Override
@@ -353,7 +388,8 @@ public class KohlchanModule extends AbstractLynxChanModule {
         if (captchaId != null) validateCaptcha(captchaId, listener, task);
         
         String url = getUsingUrl() + (model.threadNumber == null ? "newThread.js?json=1" : "replyThread.js?json=1");
-
+        
+        if (model.password.length() > MAX_PASSWORD_LENGTH) model.password = model.password.substring(0, MAX_PASSWORD_LENGTH);
         ExtendedMultipartBuilder postEntityBuilder = ExtendedMultipartBuilder.create().
                 setDelegates(listener, task).
                 setCharset(Charset.forName("UTF-8")).
@@ -420,6 +456,8 @@ public class KohlchanModule extends AbstractLynxChanModule {
     @Override
     public String deletePost(DeletePostModel model, final ProgressListener listener, final CancellableTask task) throws Exception {
         String url = getUsingUrl() + "contentActions.js?json=1";
+        
+        if (model.password.length() > MAX_PASSWORD_LENGTH) model.password = model.password.substring(0, MAX_PASSWORD_LENGTH);
         ExtendedMultipartBuilder multipartBuilder = ExtendedMultipartBuilder.create().setDelegates(listener, task).
                 addString("action", "delete").
                 addString("password", model.password).
