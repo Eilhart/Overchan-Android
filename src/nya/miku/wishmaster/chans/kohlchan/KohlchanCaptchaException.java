@@ -9,7 +9,7 @@ import nya.miku.wishmaster.http.interactive.SimpleCaptchaException;
 public class KohlchanCaptchaException extends SimpleCaptchaException {
     private static final long serialVersionUID = 1L;
 
-    public String captchaId = "";
+    private String captchaId = "";
 
     protected Bitmap getNewCaptcha() throws Exception {
         KohlchanModule.ExtendedCaptchaModel captcha =

@@ -82,6 +82,7 @@ public class KohlchanModule extends AbstractLynxChanModule {
     
     private String domain;
     private static HashMap<String, String> captchas = null;
+    private String reportCaptchaAnswer = null;
 
     public KohlchanModule(SharedPreferences preferences, Resources resources) {
         super(preferences, resources);
@@ -419,20 +420,19 @@ public class KohlchanModule extends AbstractLynxChanModule {
     @Override
     public String deletePost(DeletePostModel model, final ProgressListener listener, final CancellableTask task) throws Exception {
         String url = getUsingUrl() + "contentActions.js?json=1";
-        ExtendedMultipartBuilder multipartBuilder = ExtendedMultipartBuilder.create().
-                setDelegates(listener, task).
+        ExtendedMultipartBuilder multipartBuilder = ExtendedMultipartBuilder.create().setDelegates(listener, task).
                 addString("action", "delete").
                 addString("password", model.password).
-                addString("deleteMedia", "true").
+                //addString("deleteMedia", "true"). /* only mods can remove files from server */
                 addString(model.boardName + "-" + model.threadNumber +
                                 (model.postNumber != null ? ("-" + model.postNumber) : ""), "true");
         if (model.onlyFiles) {
             multipartBuilder.addString("deleteUploads", "true");
         }
-        HttpRequestModel request = HttpRequestModel.builder().setPOST(multipartBuilder.build()).setNoRedirect(true).build();
+        HttpRequestModel request = HttpRequestModel.builder().setPOST(multipartBuilder.build()).build();
         String response;
         try {
-            response = HttpStreamer.getInstance().getStringFromUrl(url, request, httpClient, null, task, false);
+            response = HttpStreamer.getInstance().getStringFromUrl(url, request, httpClient, listener, task, false);
         } catch (HttpWrongStatusCodeException e) {
             checkCloudflareError(e, url);
             throw e;
@@ -458,8 +458,51 @@ public class KohlchanModule extends AbstractLynxChanModule {
         throw new Exception("Unknown Error");
     }
 
+    @Override
+    public String reportPost(DeletePostModel model, ProgressListener listener, CancellableTask task) throws Exception {
+        if (reportCaptchaAnswer == null) {
+            throw new KohlchanCaptchaException() {
+                @Override
+                protected void storeResponse(String response) {
+                    reportCaptchaAnswer = response;
+                }
+            };
+        }
+        
+        String url = getUsingUrl() + "contentActions.js?json=1";
+        ExtendedMultipartBuilder multipartBuilder = ExtendedMultipartBuilder.create().setDelegates(listener, task).
+                addString("action", "report").
+                addString("reason", model.reportReason).
+                addString("captcha", reportCaptchaAnswer).
+                addString("global", "true").
+                addString(model.boardName + "-" + model.threadNumber +
+                        (model.threadNumber.equals(model.postNumber) ? "" : "-" + model.postNumber), "true");
+        reportCaptchaAnswer = null;
+        
+        HttpRequestModel request = HttpRequestModel.builder().setPOST(multipartBuilder.build()).build();
+        String response;
+        try {
+            response = HttpStreamer.getInstance().getStringFromUrl(url, request, httpClient, listener, task, false);
+        } catch (HttpWrongStatusCodeException e) {
+            checkCloudflareError(e, url);
+            throw e;
+        }
+        
+        JSONObject result = new JSONObject(response);
+        String status = result.optString("status");
+        if ("ok".equals(status)) {
+            return null;
+        } else if (status.contains("error")) {
+            String errorMessage = result.optString("data");
+            if (errorMessage.length() > 0) {
+                throw new Exception(errorMessage);
+            }
+        }
+        throw new Exception("Unknown Error");
+    }
+
     class ExtendedCaptchaModel extends CaptchaModel {
-        public String captchaID = "";
+        String captchaID = "";
     }
     
 }
