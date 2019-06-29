@@ -88,6 +88,8 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
     private static final Pattern ORANGE_TEXT_MARK_PATTERN = Pattern.compile("<span class=\"orangeText\">(.*?)</span>");
     private static final Pattern GREEN_TEXT_MARK_PATTERN = Pattern.compile("<span class=\"greenText\">(.*?)</span>");
     private static final Pattern REPLY_NUMBER_PATTERN = Pattern.compile("&gt&gt(\\d+)");
+    private static final boolean LINKIFY = true;
+    
     protected Map<String, BoardModel> boardsMap = null;
     private Map<String, ArrayList<String>> flagsMap = null;
     private static String lastCaptchaId;
@@ -295,7 +297,7 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         return model;
     }
 
-    private PostModel mapPostModel(JSONObject object) {
+    protected PostModel mapPostModel(JSONObject object) {
         PostModel model = new PostModel();
         try {
             model.timestamp = CHAN_DATEFORMAT.parse(object.optString("creation")).getTime();
@@ -310,6 +312,8 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         model.comment = RegexUtils.replaceAll(model.comment, ORANGE_TEXT_MARK_PATTERN, "<font color=\"#FFA500\">$1</font>");
         model.comment = RegexUtils.replaceAll(model.comment, GREEN_TEXT_MARK_PATTERN, "<span class=\"quote\">$1</span>");
         model.comment = RegexUtils.replaceAll(model.comment, REPLY_NUMBER_PATTERN, "&gt;&gt;$1");
+        if (LINKIFY) model.comment = RegexUtils.linkify(model.comment.replace("&#58;//", "://"));
+        
         String banMessage = object.optString("banMessage", "");
         if (!banMessage.equals(""))
             model.comment = model.comment + "<br/><em><font color=\"red\">"+banMessage+"</font></em>";

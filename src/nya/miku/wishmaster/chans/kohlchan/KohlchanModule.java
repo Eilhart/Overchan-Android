@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.regex.Pattern;
 
 import cz.msebera.android.httpclient.Header;
 import cz.msebera.android.httpclient.impl.cookie.BasicClientCookie;
@@ -54,10 +55,12 @@ import nya.miku.wishmaster.api.interfaces.ProgressListener;
 import nya.miku.wishmaster.api.models.BoardModel;
 import nya.miku.wishmaster.api.models.CaptchaModel;
 import nya.miku.wishmaster.api.models.DeletePostModel;
+import nya.miku.wishmaster.api.models.PostModel;
 import nya.miku.wishmaster.api.models.SendPostModel;
 import nya.miku.wishmaster.api.models.SimpleBoardModel;
 import nya.miku.wishmaster.api.models.UrlPageModel;
 import nya.miku.wishmaster.api.util.CryptoUtils;
+import nya.miku.wishmaster.api.util.RegexUtils;
 import nya.miku.wishmaster.common.IOUtils;
 import nya.miku.wishmaster.common.Logger;
 import nya.miku.wishmaster.http.ExtendedMultipartBuilder;
@@ -82,6 +85,7 @@ public class KohlchanModule extends AbstractLynxChanModule {
     
     private static final String[] ATTACHMENT_FORMATS = new String[] {
             "jpg", "jpeg", "bmp", "gif", "png", "mp3", "ogg", "flac", "opus", "webm", "mp4", "7z", "zip", "pdf", "epub", "txt" };
+    private static final Pattern INVALID_LESSER_THAN_PATTERN = Pattern.compile("&lt([^;])");
     private static final int MAX_PASSWORD_LENGTH = 8;
     
     private String domain;
@@ -270,6 +274,15 @@ public class KohlchanModule extends AbstractLynxChanModule {
         model.allowEmails = false;
         model.allowRandomHash = true;
         model.attachmentsFormatFilters = ATTACHMENT_FORMATS;
+        return model;
+    }
+
+    @Override
+    protected PostModel mapPostModel(JSONObject object) {
+        PostModel model = super.mapPostModel(object);
+        model.name = model.name.replace("&apos;", "'");
+        model.subject = model.subject.replace("&apos;", "'");
+        model.comment = RegexUtils.replaceAll(model.comment, INVALID_LESSER_THAN_PATTERN, "&lt;$1");
         return model;
     }
 
