@@ -417,15 +417,19 @@ public class KohlchanModule extends AbstractLynxChanModule {
         if (model.attachments != null && model.attachments.length > 0) {
             MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
             for (int i = 0; i < model.attachments.length; ++i) {
-                String ext = MimeTypeMap.getFileExtensionFromUrl(
-                        Uri.fromFile(model.attachments[i]).getEncodedPath());
-                String mime = mimeTypeMap.getMimeTypeFromExtension(ext);
-                if (mime == null) throw new Exception("Unknown file type");
+                String mime = null;
+                String name = model.attachments[i].getName();
+                try {
+                    mime = mimeTypeMap.getMimeTypeFromExtension(name.substring(name.lastIndexOf('.') + 1));
+                } catch (Exception e) {
+                    Logger.e(TAG, e);
+                }
+                if (mime == null) throw new Exception("Unknown file type of " + name);
                 String md5 = null;
                 if (!model.randomHash) {
                     md5 = checkFileIdentifier(model.attachments[i], mime, listener, task);
                 }
-                postEntityBuilder.addString("fileName", model.attachments[i].getName());
+                postEntityBuilder.addString("fileName", name).addString("fileSpoiler", "");
                 if (md5 != null) {
                     postEntityBuilder.addString("fileMd5", md5).addString("fileMime", mime);
                 } else {
