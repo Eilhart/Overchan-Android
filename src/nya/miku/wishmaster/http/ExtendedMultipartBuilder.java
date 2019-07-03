@@ -88,8 +88,8 @@ public class ExtendedMultipartBuilder {
     }
     
     private ExtendedMultipartBuilder addFile(String key, File value, String mimeType, final int randomTail) {
-        return addPart(key, (mimeType == null || mimeType.length() == 0) ? new FileBody(value)
-                : new FileBody(value, ContentType.create(mimeType), value.getName()) {
+        return addPart(key, new FileBody(value, (mimeType == null || mimeType.length() == 0) ?
+                ContentType.APPLICATION_OCTET_STREAM : ContentType.create(mimeType)) {
             @Override
             public long getContentLength() {
                 return super.getContentLength() + randomTail;
