@@ -24,7 +24,6 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
@@ -32,7 +31,6 @@ import android.preference.PreferenceGroup;
 import android.support.v4.content.res.ResourcesCompat;
 import android.text.InputFilter;
 import android.text.InputType;
-import android.webkit.MimeTypeMap;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -68,6 +66,7 @@ import nya.miku.wishmaster.http.streamer.HttpRequestModel;
 import nya.miku.wishmaster.http.streamer.HttpResponseModel;
 import nya.miku.wishmaster.http.streamer.HttpStreamer;
 import nya.miku.wishmaster.http.streamer.HttpWrongStatusCodeException;
+import nya.miku.wishmaster.lib.MimeTypes;
 import nya.miku.wishmaster.lib.org_json.JSONObject;
 
 public class KohlchanModule extends AbstractLynxChanModule {
@@ -415,15 +414,10 @@ public class KohlchanModule extends AbstractLynxChanModule {
         if (model.threadNumber != null) postEntityBuilder.addString("threadId", model.threadNumber);
         if (model.custommark) postEntityBuilder.addString("spoiler", "true");
         if (model.attachments != null && model.attachments.length > 0) {
-            MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
             for (int i = 0; i < model.attachments.length; ++i) {
                 String mime = null;
                 String name = model.attachments[i].getName();
-                try {
-                    mime = mimeTypeMap.getMimeTypeFromExtension(name.substring(name.lastIndexOf('.') + 1));
-                } catch (Exception e) {
-                    Logger.e(TAG, e);
-                }
+                mime = MimeTypes.forExtension(name.substring(name.lastIndexOf('.') + 1));
                 if (mime == null) throw new Exception("Unknown file type of " + name);
                 String md5 = null;
                 if (!model.randomHash) {
