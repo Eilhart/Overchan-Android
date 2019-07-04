@@ -27,8 +27,8 @@ public class MimeTypes {
         addMime("zip", "application/zip");
         addMime("aac", "audio/aac");
         addMime("flac", "audio/flac");
-        addMime("mid", "audio/midi");
         addMime("midi", "audio/midi");
+        addMime("mid", "audio/midi");
         addMime("mp3", "audio/mpeg");
         addMime("opus", "audio/opus");
         addMime("wav", "audio/x-wav");
@@ -36,8 +36,8 @@ public class MimeTypes {
         addMime("jpe", "image/jpeg");
         addMime("jpeg", "image/jpeg");
         addMime("jpg", "image/jpeg");
-        addMime("png", "image/png");
         addMime("apng", "image/png");
+        addMime("png", "image/png");
         addMime("svgz", "image/svg+xml");
         addMime("svg", "image/svg+xml");
         addMime("webp", "image/webp");
