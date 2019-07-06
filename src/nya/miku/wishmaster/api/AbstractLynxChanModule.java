@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -71,6 +72,7 @@ import nya.miku.wishmaster.http.interactive.SimpleCaptchaException;
 import nya.miku.wishmaster.http.streamer.HttpRequestModel;
 import nya.miku.wishmaster.http.streamer.HttpResponseModel;
 import nya.miku.wishmaster.http.streamer.HttpStreamer;
+import nya.miku.wishmaster.lib.MimeTypes;
 import nya.miku.wishmaster.lib.base64.Base64;
 import nya.miku.wishmaster.lib.base64.Base64OutputStream;
 import nya.miku.wishmaster.lib.org_json.JSONArray;
@@ -83,11 +85,13 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         CHAN_DATEFORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         CHAN_DATEFORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
-
+    private static final Pattern MIME_TYPE_PATTERN = Pattern.compile("-(application|audio|image|text|video)(.+)");
     private static final Pattern RED_TEXT_MARK_PATTERN = Pattern.compile("<span class=\"redText\">(.*?)</span>");
     private static final Pattern ORANGE_TEXT_MARK_PATTERN = Pattern.compile("<span class=\"orangeText\">(.*?)</span>");
     private static final Pattern GREEN_TEXT_MARK_PATTERN = Pattern.compile("<span class=\"greenText\">(.*?)</span>");
     private static final Pattern REPLY_NUMBER_PATTERN = Pattern.compile("&gt&gt(\\d+)");
+    private static final boolean LINKIFY = true;
+    
     protected Map<String, BoardModel> boardsMap = null;
     private Map<String, ArrayList<String>> flagsMap = null;
     private static String lastCaptchaId;
@@ -275,7 +279,28 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         if (thumb.length() > 0) {
             AttachmentModel attachment = new AttachmentModel();
             attachment.thumbnail = thumb;
-            attachment.path = thumb;
+            Matcher mimeMatcher = MIME_TYPE_PATTERN.matcher(thumb);
+            if (mimeMatcher.find()) {
+                String mime = mimeMatcher.group(1) + "/" + mimeMatcher.group(2);
+                if (mime.startsWith("image/")) {
+                    attachment.type = AttachmentModel.TYPE_IMAGE_STATIC;
+                    if (mime.contains("gif")) attachment.type = AttachmentModel.TYPE_IMAGE_GIF;
+                    if (mime.contains("svg")) attachment.type = AttachmentModel.TYPE_IMAGE_SVG;
+                } else if (mime.startsWith("audio/")) {
+                    attachment.type = AttachmentModel.TYPE_AUDIO;
+                    attachment.thumbnail = null;
+                } else if (mime.startsWith("video/")) {
+                    attachment.type = AttachmentModel.TYPE_VIDEO;
+                } else {
+                    attachment.type = AttachmentModel.TYPE_OTHER_FILE;
+                    attachment.thumbnail = null;
+                }
+                String ext = MimeTypes.toExtension(mime);
+                attachment.path = thumb.replace("t_", "")
+                        + (ext != null ? "." + ext : "");
+            } else {
+                attachment.path = thumb;
+            }
             attachment.height = -1;
             attachment.width = -1;
             attachment.size = -1;
@@ -295,7 +320,7 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         return model;
     }
 
-    private PostModel mapPostModel(JSONObject object) {
+    protected PostModel mapPostModel(JSONObject object) {
         PostModel model = new PostModel();
         try {
             model.timestamp = CHAN_DATEFORMAT.parse(object.optString("creation")).getTime();
@@ -310,6 +335,8 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         model.comment = RegexUtils.replaceAll(model.comment, ORANGE_TEXT_MARK_PATTERN, "<font color=\"#FFA500\">$1</font>");
         model.comment = RegexUtils.replaceAll(model.comment, GREEN_TEXT_MARK_PATTERN, "<span class=\"quote\">$1</span>");
         model.comment = RegexUtils.replaceAll(model.comment, REPLY_NUMBER_PATTERN, "&gt;&gt;$1");
+        if (LINKIFY) model.comment = RegexUtils.linkify(model.comment.replace("&#58;//", "://"));
+        
         String banMessage = object.optString("banMessage", "");
         if (!banMessage.equals(""))
             model.comment = model.comment + "<br/><em><font color=\"red\">"+banMessage+"</font></em>";
@@ -445,7 +472,7 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         return downloadCaptcha(captchaUrl, listener, task);
     }
 
-    private String computeFileMD5(File file) throws NoSuchAlgorithmException, IOException {
+    public static String computeFileMD5(File file) throws NoSuchAlgorithmException, IOException {
         MessageDigest messageDigest = MessageDigest.getInstance("MD5");
         messageDigest.reset();
 
