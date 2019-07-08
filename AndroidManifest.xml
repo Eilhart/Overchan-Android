@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     android:installLocation="auto"
     tools:ignore="UnusedAttribute"
     android:versionCode="73"
-    android:versionName="1.6.9-rc35-kc6">
+    android:versionName="1.6.9-rc35-kc7">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
