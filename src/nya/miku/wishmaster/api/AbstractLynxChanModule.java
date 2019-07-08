@@ -147,7 +147,7 @@ public abstract class AbstractLynxChanModule extends AbstractWakabaModule {
         model.allowDeleteFiles = model.allowDeletePosts;
         model.requiredFileForNewThread = settings.contains("requireThreadFile");
         model.allowRandomHash = settings.contains("uniqueFiles");
-        model.uniqueAttachmentNames = settings.contains("uniqueFiles");
+        model.uniqueAttachmentNames = false;  //spoiler thumbs have same urls in different imageboards
         model.attachmentsMaxCount = settings.contains("textBoard") ? 0 : model.attachmentsMaxCount;
         try {
             JSONArray flags = boardJson.getJSONArray("flagData");
