@@ -33,7 +33,6 @@ import android.text.InputFilter;
 import android.text.InputType;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -271,7 +270,7 @@ public class KohlchanModule extends AbstractLynxChanModule {
         BoardModel model = super.getBoard(shortName, listener, task);
         model.defaultUserName = "Bernd";
         model.allowEmails = false;
-        model.allowRandomHash = true;
+        model.allowRandomHash = false;
         model.attachmentsFormatFilters = ATTACHMENT_FORMATS;
         return model;
     }
@@ -368,15 +367,8 @@ public class KohlchanModule extends AbstractLynxChanModule {
         }
     }
 
-    private String checkFileIdentifier(File file, String mime, ProgressListener listener, CancellableTask task) {
-        if (mime == null) return null;
-        String hash;
-        try {
-            hash = AbstractLynxChanModule.computeFileMD5(file);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+    private boolean checkFileIdentifier(String hash, String mime, ProgressListener listener, CancellableTask task) {
+        if (mime == null) return false;
         String identifier = hash + "-" + mime.replace("/", "");
         String url = getUsingUrl() + "checkFileIdentifier.js?json=1&identifier=" + identifier;
         String response = "";
@@ -384,10 +376,9 @@ public class KohlchanModule extends AbstractLynxChanModule {
             response = HttpStreamer.getInstance().getStringFromUrl(url, null, httpClient, listener, task, false);
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return false;
         }
-        if (response.contains("true")) return hash;
-        return null;
+        return response.contains("true");
     }
 
     public String sendPost(SendPostModel model, ProgressListener listener, CancellableTask task) throws Exception {
@@ -420,13 +411,19 @@ public class KohlchanModule extends AbstractLynxChanModule {
                 mime = MimeTypes.forExtension(name.substring(name.lastIndexOf('.') + 1));
                 if (mime == null) throw new Exception("Unknown file type of " + name);
                 String md5 = null;
-                if (!model.randomHash) {
-                    md5 = checkFileIdentifier(model.attachments[i], mime, listener, task);
+                try {
+                    md5 = AbstractLynxChanModule.computeFileMD5(model.attachments[i]);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new Exception("Cannot calculate hash value of " + name);
                 }
-                postEntityBuilder.addString("fileName", name).addString("fileSpoiler", "");
-                if (md5 != null) {
-                    postEntityBuilder.addString("fileMd5", md5).addString("fileMime", mime);
-                } else {
+                boolean fileExists = checkFileIdentifier(md5, mime, listener, task);
+                postEntityBuilder.
+                        addString("fileMd5", md5).
+                        addString("fileMime", mime).
+                        addString("fileSpoiler", "").
+                        addString("fileName", name);
+                if (!fileExists) {
                     postEntityBuilder.addFile("files", model.attachments[i], mime, model.randomHash);
                 }
             }
